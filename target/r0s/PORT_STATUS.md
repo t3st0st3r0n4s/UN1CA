@@ -42,3 +42,12 @@
 4. **ROM:** produce target-files; inspect OTA recovery and firmware assertions.
 5. **BOARD:** verify SELinux, radio, fingerprint, camera, audio, wireless, modules and data migration.
 6. **PROMOTION:** remove installer abort only after complete qualification.
+
+## Firmware research update (2026-10-11)
+
+- Samsung update record and EUX firmware listings identify **S901BXXSOGZH3** (Android 16, release 2026-09-03, 2026-08-05 SPL) and CSC **S901BOXMOGZH3**; firmware revision **O**.
+- Public package listings are not a four-part FUS marker. CP/boot-component versions and actual extracted-image SHA256 remain **UNVERIFIED**.
+- `scripts/r0s/inspect_extracted_firmware.sh` reuses upstream `os_partitions_metadata.txt` to check FUS markers, API 36, super geometry, stock boot images, vendor fstab candidates and native module locations. It is **read-only** and runs only when explicitly invoked on an existing extraction.
+- `scripts/ci/test_r0s_firmware_inspector.sh` tests the tool with synthetic fixtures in GitHub Actions; it does **not** obtain stock firmware.
+- Modern LineageOS `s5e9925-common` fstab provides a useful `boot` / `vendor_boot` / `dtbo` reference, but is not established as native One UI 8 recovery evidence and is not imported.
+- Research/evidence details: `docs/r0s/EXTERNAL_FIRMWARE_EVIDENCE.md`.

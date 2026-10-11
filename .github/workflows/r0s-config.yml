@@ -11,6 +11,8 @@ on:
       - 'unica/configs/essi.sh'
       - 'scripts/internal/gen_config_file.sh'
       - 'scripts/ci/check_r0s_config.sh'
+      - 'scripts/ci/test_r0s_firmware_inspector.sh'
+      - 'scripts/r0s/inspect_extracted_firmware.sh'
       - '.github/workflows/r0s-config.yml'
 
 jobs:
@@ -23,3 +25,6 @@ jobs:
       - name: Validate r0s source and target configuration
         shell: bash
         run: bash scripts/ci/check_r0s_config.sh
+      - name: Test extracted-firmware inspector using synthetic data only
+        shell: bash
+        run: bash scripts/ci/test_r0s_firmware_inspector.sh
