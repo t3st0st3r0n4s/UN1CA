@@ -67,3 +67,11 @@
 - Synthetic negative checks rejected incorrect vendor_boot mapping and missing `E3099` lock.
 - **NOT YET QUALIFIED:** Samsung A16 recovery fstab, OTA package, bootloader/rollback assertions, native kernel, real device.
 - See `docs/r0s/RECOVERY_OTA_STAGE.md`.
+
+## Root-manager reuse staged (2026-10-12)
+
+- Reused the **validated A15 installer logic** (one-shot `pm install -r` with a per-release marker) as UN1CA-specific files under `staging/r0s/ksunext/`.
+- Recorded the proven A15 manager v3.4.1 APK URL and SHA256, plus old kernel source pins for traceability; neither the APK nor the A15 kernel binary was imported.
+- Added `scripts/ci/check_r0s_ksu_staging.sh` to ensure the manager remains **inactive** and verify staged script/manifest invariants.
+- **NOT PROMOTED:** KernelSU Next A16 kernel build, `u:r:ksu:s0` availability, real A16 manager install, SELinux enforcing and board behavior.
+- Details: `docs/r0s/KSUNEXT_REUSE.md`. Existing UN1CA `preload` module unchanged.

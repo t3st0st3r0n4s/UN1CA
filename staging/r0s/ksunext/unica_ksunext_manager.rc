@@ -1,0 +1,4 @@
+# STAGED ONLY. Do not place under /system/etc/init until A16 kernel + sepolicy
+# have independently proven u:r:ksu:s0 and exec_background support.
+on property:sys.boot_completed=1
+    exec_background u:r:ksu:s0 root root -- /system/bin/sh /system/etc/unica/ksunext/install_manager.sh
