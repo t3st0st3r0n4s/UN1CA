@@ -32,6 +32,10 @@ source ./buildenv.sh r0s || die "UN1CA buildenv / gen_config_file.sh failed"
 [[ "$TARGET_SUPER_GROUP_NAME" == "group_basic" ]] || die "wrong super group"
 [[ "$TARGET_SUPER_PARTITION_SIZE" == "11744051200" ]] || die "unexpected provisional super size"
 [[ "$TARGET_GROUP_BASIC_SIZE" == "11739856896" ]] || die "unexpected provisional group size"
+[[ "$TARGET_BOOT_PARTITION_SIZE" == "67108864" ]] || die "unexpected provisional boot size"
+[[ "$TARGET_VENDOR_BOOT_PARTITION_SIZE" == "33554432" ]] || die "unexpected provisional vendor_boot size"
+[[ "$TARGET_DTBO_PARTITION_SIZE" == "8388608" ]] || die "unexpected provisional dtbo size"
+[[ "$TARGET_CACHE_PARTITION_SIZE" == "629145600" ]] || die "unexpected provisional cache size"
 [[ "$TARGET_ASSERT_MODEL" == "SM-S901B" ]] || die "wrong model assertion"
 
 # The native S901B source is also the S901B target: enforce feature equality.

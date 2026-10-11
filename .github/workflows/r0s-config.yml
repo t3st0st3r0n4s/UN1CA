@@ -13,6 +13,8 @@ on:
       - 'scripts/ci/check_r0s_config.sh'
       - 'scripts/ci/test_r0s_firmware_inspector.sh'
       - 'scripts/r0s/inspect_extracted_firmware.sh'
+      - 'scripts/r0s/inspect_boot_chain.sh'
+      - 'scripts/ci/test_r0s_boot_chain.sh'
       - '.github/workflows/r0s-config.yml'
 
 jobs:
@@ -28,3 +30,6 @@ jobs:
       - name: Test extracted-firmware inspector using synthetic data only
         shell: bash
         run: bash scripts/ci/test_r0s_firmware_inspector.sh
+      - name: Check native boot metadata safety gates (synthetic only)
+        shell: bash
+        run: bash scripts/ci/test_r0s_boot_chain.sh

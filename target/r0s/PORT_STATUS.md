@@ -51,3 +51,11 @@
 - `scripts/ci/test_r0s_firmware_inspector.sh` tests the tool with synthetic fixtures in GitHub Actions; it does **not** obtain stock firmware.
 - Modern LineageOS `s5e9925-common` fstab provides a useful `boot` / `vendor_boot` / `dtbo` reference, but is not established as native One UI 8 recovery evidence and is not imported.
 - Research/evidence details: `docs/r0s/EXTERNAL_FIRMWARE_EVIDENCE.md`.
+
+## Boot-chain source gate (2026-10-11)
+
+- Exynos 2200 boot, vendor_boot, dtbo and cache partition capacities now have **provisional** values from modern `LineageOS/android_device_samsung_s5e9925-common` (`lineage-23.2`).
+- `scripts/r0s/inspect_boot_chain.sh` checks UN1CA-extracted stock `boot.img`, `vendor_boot.img`, and `dtbo.img` against those capacity references and UN1CA's `*_metadata.txt` header records, printing image hashes and vendor-module inventory without modifying any file.
+- `scripts/ci/test_r0s_boot_chain.sh` tests the reader against synthetic invalid headers and oversized images. **This is not hardware or genuine stock A16 kernel qualification.**
+- Samsung OSRC archive name `SM-S901B_16_Opensource.zip` is reported in third-party research for A16 kernel version 5.10.237, but exact **GZH3-matched** stock source/ABI remains unverified.
+- See `docs/r0s/BOOT_CHAIN_PORT.md`. Installer lock stays in place.
