@@ -13,10 +13,13 @@ field() { local key="$1" file="$2"; sed -n "s/^${key}=//p" "$file" | head -n 1; 
 [[ -f "$FWDIR/.extracted" ]] || fail "missing .extracted marker"
 [[ -f "$FWDIR/os_partitions_metadata.txt" ]] || fail "missing upstream os_partitions_metadata.txt"
 
+# Samsung FOTA <latest> and UN1CA's .downloaded/.extracted markers are
+# PDA/CSC/MODEM (three values). The Odin archive itself may contain
+# AP/BL/CP/CSC tarballs; that is a different notion of "four-part".
 EXTRACTED="$(cat "$FWDIR/.extracted")"
-IFS='/' read -r PDA CSC CP BOOT_EXTRA <<< "$EXTRACTED"
-[[ -n "${PDA:-}" && -n "${CSC:-}" && -n "${CP:-}" && -n "${BOOT_EXTRA:-}" ]] || fail "incomplete four-part FUS marker"
-[[ "$PDA" == S901B* && "$CSC" == S901B* ]] || fail "unexpected Samsung model in firmware marker"
+[[ "$EXTRACTED" =~ ^S901B[[:alnum:]]+/S901B[[:alnum:]]+/S901B[[:alnum:]]+$ ]] ||
+    fail "expected S901B FOTA marker PDA/CSC/MODEM, got: $EXTRACTED"
+IFS='/' read -r PDA CSC MODEM <<< "$EXTRACTED"
 ODIN_MARKER="$ROOT/out/odin/SM-S901B_EUX/.downloaded"
 if [[ -f "$ODIN_MARKER" ]]; then
     [[ "$(cat "$ODIN_MARKER")" == "$EXTRACTED" ]] || fail "Odin download marker differs from extracted firmware"
@@ -37,7 +40,7 @@ GROUP_SIZE="$(field "super_${GROUP}_group_size" "$META")"
 (( GROUP_SIZE > 0 && GROUP_SIZE < PARTITION_SIZE )) || fail "invalid partition/group sizing"
 
 printf 'r0s Android 16 firmware evidence (read-only)\n'
-printf 'firmware_4part=%s\n' "$EXTRACTED"
+printf 'firmware_fota_triplet=%s\n' "$EXTRACTED"
 printf 'super_partition_size=%s\n' "$PARTITION_SIZE"
 printf 'super_partition_group=%s\n' "$GROUP"
 printf 'super_group_size=%s\n' "$GROUP_SIZE"

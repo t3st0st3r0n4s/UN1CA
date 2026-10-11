@@ -14,8 +14,8 @@
 | Security patch | 2026-08-05 |
 | Bootloader / binary revision | `O` (public firmware listing) |
 | Public archive MD5 | `9e4e16470c68c344a3aefbb3eebd727a` (third-party archive listing, **not** a hash verified by this project) |
-| CP / fourth FUS component | **Not verified** |
-| Four-part FUS response | **Not verified** |
+| FOTA `PDA/CSC/MODEM` | `S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3` (observed on Ubuntu host 2026-10-11) |
+| Odin archive components | AP/BL/CP/CSC tarballs **not yet downloaded/verified** |
 | Extracted image hashes / fstab / lpdump | **Not verified** |
 
 Primary Samsung publication:
@@ -27,13 +27,13 @@ https://samfw.com/firmware/sm-s901b/eux/s901bxxsogzh3
 Cross-reference for EUX PDA and CSC:
 https://s-update.samsungvn.com/devices/SM-S901B
 
-The `SOURCE_FIRMWARE` key in `unica/configs/essi.sh` still uses UN1CA's Samsung FUS lookup. The result may change when Samsung updates firmware. **Do not treat the public PDA/CSC pair as an exact pinned four-part download.** This milestone does not change the source firmware selection.
+The `SOURCE_FIRMWARE` key in `unica/configs/essi.sh` still uses UN1CA's Samsung FUS lookup. The result may change when Samsung updates firmware. **Do not mistake the three-component FOTA update string for four Odin archive component hashes or a pinned Samsung release download.** This milestone does not change the source firmware selection.
 
 ## Native extraction pipeline (reuse, not replacement)
 
 UN1CA `scripts/extract_fw.sh` already creates:
 
-- `out/fw/SM-S901B_EUX/.extracted`: full four-part FUS release recorded by the extractor.
+- `out/fw/SM-S901B_EUX/.extracted`: Samsung `PDA/CSC/MODEM` triplet recorded by UN1CA's extractor.
 - `out/fw/SM-S901B_EUX/os_partitions_metadata.txt`: `lpdump`-derived super partition and group sizes.
 - `out/fw/SM-S901B_EUX/kernel/`: extracted stock boot chain images.
 - `out/fw/SM-S901B_EUX/vendor/` and `vendor_dlkm/`: native hardware configurations and modules.
@@ -65,7 +65,7 @@ UN1CA's `scripts/utils/install_utils.sh` expects `target/r0s/installer/recovery.
 
 ## Promotion requirements
 
-1. Obtain and verify exact A16 four-part FUS release and archive/image hashes.
+1. Obtain and verify the A16 Samsung FOTA triplet, Odin AP/BL/CP/CSC archive components and extracted image hashes.
 2. Use UN1CA's extracted `os_partitions_metadata.txt` to confirm actual super geometry.
 3. Extract matching stock A16 recovery/vendor boot fstab, compare with device-level references and verify installer mount paths.
 4. Confirm matched stock A16 kernel, DTBO, vendor_boot, modules and compatible recovery.

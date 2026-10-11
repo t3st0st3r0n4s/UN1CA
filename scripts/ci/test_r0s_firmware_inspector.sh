@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/kernel" "$TMP/system/system" "$TMP/vendor/etc"
-printf '%s' 'S901BXXSOGZH3/S901BOXMOGZH3/CP_VERSION/BOOT_VERSION' > "$TMP/.extracted"
+printf '%s' 'S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3' > "$TMP/.extracted"
 cat > "$TMP/os_partitions_metadata.txt" <<'META'
 use_dynamic_partitions=true
 super_partition_size=11744051200
@@ -24,8 +24,18 @@ if bash "$ROOT/scripts/r0s/inspect_extracted_firmware.sh" "$TMP" > /dev/null 2>&
     echo 'FAIL: geometry mismatch went undetected' >&2; exit 1
 fi
 sed -i 's/super_group_basic_group_size=11600000000/super_group_basic_group_size=11739856896/' "$TMP/os_partitions_metadata.txt"
-printf '%s' 'BAD_DEVICE/S901BOXMOGZH3/CP_VERSION/BOOT_VERSION' > "$TMP/.extracted"
+printf '%s' 'BAD_DEVICE/S901BOXMOGZH3/S901BXXSOGZH3' > "$TMP/.extracted"
 if bash "$ROOT/scripts/r0s/inspect_extracted_firmware.sh" "$TMP" > /dev/null 2>&1; then
     echo 'FAIL: model mismatch went undetected' >&2; exit 1
+fi
+# Make sure an old four-component fake marker is not accepted.
+printf '%s' 'S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3/EXTRA' > "$TMP/.extracted"
+if bash "$ROOT/scripts/r0s/inspect_extracted_firmware.sh" "$TMP" > /dev/null 2>&1; then
+    echo 'FAIL: four-component marker incorrectly accepted' >&2; exit 1
+fi
+# Ensure invalid third (MODEM) component is rejected too.
+printf '%s' 'S901BXXSOGZH3/S901BOXMOGZH3/BAD_MODEM' > "$TMP/.extracted"
+if bash "$ROOT/scripts/r0s/inspect_extracted_firmware.sh" "$TMP" > /dev/null 2>&1; then
+    echo 'FAIL: bad MODEM marker incorrectly accepted' >&2; exit 1
 fi
 echo 'r0s synthetic firmware-inspector tests PASS (no real firmware involved)'

@@ -22,7 +22,7 @@
 
 ## What is still unverified
 
-- Exact A16 FUS four-part firmware release and hashes; firmware selection currently follows latest from UN1CA's downloader.
+- Exact A16 Odin AP/BL/CP/CSC archive/image hashes; firmware selection currently follows latest from UN1CA's downloader.
 - Exact A16 `super` group sizes (current figures are FYI3-derived placeholders).
 - Stock A16 kernel, DTBO, vendor_boot and module ABI compatibility; no A16 KernelSU Next work performed.
 - Complete patched ROM/target-files, recovery, clean/dirty upgrade path, and real board tests.
@@ -46,7 +46,7 @@
 ## Firmware research update (2026-10-11)
 
 - Samsung update record and EUX firmware listings identify **S901BXXSOGZH3** (Android 16, release 2026-09-03, 2026-08-05 SPL) and CSC **S901BOXMOGZH3**; firmware revision **O**.
-- Public package listings are not a four-part FUS marker. CP/boot-component versions and actual extracted-image SHA256 remain **UNVERIFIED**.
+- Host FOTA query confirmed `S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3` on 2026-10-11; real Odin AP/BL/CP/CSC contents and extracted-image SHA256 remain **UNVERIFIED**.
 - `scripts/r0s/inspect_extracted_firmware.sh` reuses upstream `os_partitions_metadata.txt` to check FUS markers, API 36, super geometry, stock boot images, vendor fstab candidates and native module locations. It is **read-only** and runs only when explicitly invoked on an existing extraction.
 - `scripts/ci/test_r0s_firmware_inspector.sh` tests the tool with synthetic fixtures in GitHub Actions; it does **not** obtain stock firmware.
 - Modern LineageOS `s5e9925-common` fstab provides a useful `boot` / `vendor_boot` / `dtbo` reference, and its block-path mappings have been staged only for installer-resolver testing, not as qualified One UI 8 recovery evidence.
@@ -75,3 +75,11 @@
 - Added `scripts/ci/check_r0s_ksu_staging.sh` to ensure the manager remains **inactive** and verify staged script/manifest invariants.
 - **NOT PROMOTED:** KernelSU Next A16 kernel build, `u:r:ksu:s0` availability, real A16 manager install, SELinux enforcing and board behavior.
 - Details: `docs/r0s/KSUNEXT_REUSE.md`. Existing UN1CA `preload` module unchanged.
+
+## Real host preflight (2026-10-11)
+
+- **HOST CONFIG PASS** at UN1CA checkout `8c2d52f2a690dd8ad88e545682e3c010f90904ef`: source syntax, native config (65 parity fields), firmware/boot synthetic tests, OTA map and KernelSU staging all passed.
+- Recursive submodules initialized and clean; Samsung EUX FOTA query returned `S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3`.
+- `protobuf-compiler` was checked as a command incorrectly in the host inventory; executable is `protoc`, which still needs host verification.
+- Corrected the firmware inspector and fixtures to follow UN1CA's **three-component** `PDA/CSC/MODEM` marker. This change is source-level; a genuine firmware extraction has not been tested.
+- Disk available before firmware/tool preparation: approximately **83 GiB reported by df -h**.
