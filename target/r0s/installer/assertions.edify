@@ -1,0 +1,3 @@
+# Host-only development safeguard. Remove ONLY after matching A16 firmware,
+# partition geometry, kernel/ABI, recovery and actual board gates are proven.
+abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");

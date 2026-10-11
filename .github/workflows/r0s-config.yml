@@ -1,0 +1,42 @@
+name: r0s Android 16 config gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - sixteen-r0s
+    paths:
+      - 'target/r0s/**'
+      - 'platform/exynos2200/**'
+      - 'unica/configs/essi.sh'
+      - 'scripts/internal/gen_config_file.sh'
+      - '.github/workflows/r0s-config.yml'
+
+jobs:
+  config:
+    name: Configuration only (no firmware, kernel or ROM build)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Validate bash syntax
+        run: |
+          bash -n platform/exynos2200/config.sh target/r0s/config.sh
+      - name: Generate configuration
+        shell: bash
+        run: |
+          set -eo pipefail
+          source ./buildenv.sh r0s
+          test "$TARGET_CODENAME" = r0s
+          test "$TARGET_PLATFORM" = exynos2200
+          test "$SOURCE_PLATFORM_SDK_VERSION" = 36
+          test "$TARGET_PLATFORM_SDK_VERSION" = 36
+          test "$SOURCE_FIRMWARE" = "$TARGET_FIRMWARE"
+          test "$TARGET_OS_SINGLE_SYSTEM_IMAGE" = essi
+          test "$TARGET_OS_FILE_SYSTEM_TYPE" = erofs
+          test "$TARGET_USE_DYNAMIC_PARTITIONS" = true
+          test "$TARGET_SUPER_PARTITION_SIZE" = 11744051200
+          test "$TARGET_GROUP_BASIC_SIZE" = 11739856896
+          test -f target/r0s/installer/assertions.edify
+          grep -q 'NOT qualified for flashing' target/r0s/installer/assertions.edify
+          echo 'r0s CONFIG PASS — host configuration only; board not qualified'
