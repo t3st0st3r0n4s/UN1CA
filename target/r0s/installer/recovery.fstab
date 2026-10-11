@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# PROVISIONAL UN1CA r0s updater-script BLOCK MAP, NOT a validated Samsung One UI 8 recovery fstab.
+# Block locators cross-referenced against LineageOS s5e9925-common lineage-23.2
+# configs/init/fstab.s5e9925; native SM-S901B Android 16 recovery remains unverified.
+# DO NOT USE ON DEVICE; target/r0s/installer/assertions.edify must retain E3099 abort.
+# Dynamic partitions are resolved by UN1CA to map_partition(name), not raw blocks.
+system /system erofs ro wait,logical,first_stage_mount
+vendor /vendor erofs ro wait,logical,first_stage_mount
+product /product erofs ro wait,logical,first_stage_mount
+vendor_dlkm /vendor_dlkm erofs ro wait,logical,first_stage_mount
+system_ext /system_ext erofs ro wait,logical,first_stage_mount
+# Verified at source-reference level only, NOT against Samsung A16 firmware extraction.
+/dev/block/by-name/boot /boot emmc defaults recoveryonly
+/dev/block/by-name/vendor_boot /vendor_boot emmc defaults recoveryonly
+/dev/block/by-name/dtbo /dtbo emmc defaults recoveryonly
+/dev/block/by-name/recovery /recovery emmc defaults recoveryonly

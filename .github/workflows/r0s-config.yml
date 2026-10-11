@@ -15,6 +15,9 @@ on:
       - 'scripts/r0s/inspect_extracted_firmware.sh'
       - 'scripts/r0s/inspect_boot_chain.sh'
       - 'scripts/ci/test_r0s_boot_chain.sh'
+      - 'scripts/ci/check_r0s_ota_map.sh'
+      - 'scripts/utils/install_utils.sh'
+      - 'scripts/internal/build_full_ota_zip.sh'
       - '.github/workflows/r0s-config.yml'
 
 jobs:
@@ -33,3 +36,6 @@ jobs:
       - name: Check native boot metadata safety gates (synthetic only)
         shell: bash
         run: bash scripts/ci/test_r0s_boot_chain.sh
+      - name: Validate provisional updater-script map and safety lock
+        shell: bash
+        run: bash scripts/ci/check_r0s_ota_map.sh

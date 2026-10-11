@@ -60,13 +60,14 @@ for patch_dir in platform/exynos2200/patches target/r0s/patches; do
     fi
 done
 
-# Prevent a WIP recovery zip from installing. The missing A16 recovery fstab is
-# deliberately NOT filled from the incompatible Exynos 2100/Android 15 tree.
+# Prevent WIP installation. A provisional Lineage-derived *block locator*
+# exists solely to exercise the OTA resolver; it is NOT native A16 recovery.
 grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
     target/r0s/installer/assertions.edify || die "WIP installer abort absent"
 
-if [[ ! -f target/r0s/installer/recovery.fstab && ! -f platform/exynos2200/installer/recovery.fstab ]]; then
-    note "BLOCKED for OTA: native A16 recovery.fstab not yet qualified"
-fi
+test -f target/r0s/installer/recovery.fstab || die "missing provisional OTA block map"
+grep -q 'PROVISIONAL UN1CA r0s updater-script BLOCK MAP' \
+    target/r0s/installer/recovery.fstab || die "provisional map qualification marker absent"
+note "STAGED OTA block locator only — native A16 recovery.fstab NOT qualified"
 
 note "CONFIG PASS (source-only; firmware, kernel, ROM and BOARD not qualified)"

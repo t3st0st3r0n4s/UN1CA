@@ -17,7 +17,7 @@
 - CI script `scripts/ci/check_r0s_config.sh` verifies the current UN1CA schema and native source/target parity; GitHub Actions outcome is **not yet confirmed**.
 - UN1CA `create_work_dir.sh` already takes native vendor/kernel blobs from target firmware.
 - Camera and VINTF generic patches use target stock metadata when source/target SDK 36 match.
-- **OTA BLOCKER:** missing A16 `recovery.fstab`. UN1CA's `install_utils.sh` requires a device or platform installer fstab; no safe verified S901B A16 version is available yet.
+- **OTA BLOCKER:** A provisional `target/r0s/installer/recovery.fstab` now allows *source-level* block-locator testing, but is derived from modern LineageOS rather than verified Samsung A16 recovery. The `E3099` flash abort remains mandatory.
 - Details: `docs/r0s/SOURCE_INVENTORY.md`.
 
 ## What is still unverified
@@ -49,7 +49,7 @@
 - Public package listings are not a four-part FUS marker. CP/boot-component versions and actual extracted-image SHA256 remain **UNVERIFIED**.
 - `scripts/r0s/inspect_extracted_firmware.sh` reuses upstream `os_partitions_metadata.txt` to check FUS markers, API 36, super geometry, stock boot images, vendor fstab candidates and native module locations. It is **read-only** and runs only when explicitly invoked on an existing extraction.
 - `scripts/ci/test_r0s_firmware_inspector.sh` tests the tool with synthetic fixtures in GitHub Actions; it does **not** obtain stock firmware.
-- Modern LineageOS `s5e9925-common` fstab provides a useful `boot` / `vendor_boot` / `dtbo` reference, but is not established as native One UI 8 recovery evidence and is not imported.
+- Modern LineageOS `s5e9925-common` fstab provides a useful `boot` / `vendor_boot` / `dtbo` reference, and its block-path mappings have been staged only for installer-resolver testing, not as qualified One UI 8 recovery evidence.
 - Research/evidence details: `docs/r0s/EXTERNAL_FIRMWARE_EVIDENCE.md`.
 
 ## Boot-chain source gate (2026-10-11)
@@ -59,3 +59,11 @@
 - `scripts/ci/test_r0s_boot_chain.sh` tests the reader against synthetic invalid headers and oversized images. **This is not hardware or genuine stock A16 kernel qualification.**
 - Samsung OSRC archive name `SM-S901B_16_Opensource.zip` is reported in third-party research for A16 kernel version 5.10.237, but exact **GZH3-matched** stock source/ABI remains unverified.
 - See `docs/r0s/BOOT_CHAIN_PORT.md`. Installer lock stays in place.
+
+## Updater-script source-mapping gate (2026-10-11)
+
+- `target/r0s/installer/recovery.fstab` is now a **provisional updater-script block map only**, with raw boot/vendor_boot/dtbo/recovery locators from the maintained LineageOS Exynos 2200 reference.
+- `scripts/ci/check_r0s_ota_map.sh` exercises UN1CA's actual `GET_DEVICE_FROM_MOUNTPOINT` resolver without downloading firmware or building tools, verifies `map_partition()` behavior, rejects unknown `init_boot`/`dt` locators, and confirms that `PRINT_ASSERTIONS` is generated before partition writes.
+- Synthetic negative checks rejected incorrect vendor_boot mapping and missing `E3099` lock.
+- **NOT YET QUALIFIED:** Samsung A16 recovery fstab, OTA package, bootloader/rollback assertions, native kernel, real device.
+- See `docs/r0s/RECOVERY_OTA_STAGE.md`.

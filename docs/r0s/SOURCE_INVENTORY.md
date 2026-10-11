@@ -20,7 +20,7 @@ Scope: source review ONLY; no firmware extraction, host compilation or hardware 
 | --- | --- | --- |
 | `target/r0s` basic config | PREPARED | `scripts/ci/check_r0s_config.sh` on Actions |
 | Exynos 2200 platform config | PREPARED | Generated UN1CA config + extracted native images |
-| S901B `recovery.fstab` | **MISSING / OTA BLOCKER** | Extract matching A16 recovery/boot fstab and compare recovery mount points |
+| S901B updater block map / native `recovery.fstab` | **STAGED / NATIVE A16 UNVERIFIED** | Confirm provisional block locators against extracted Samsung A16 recovery/boot fstab before enabling installation |
 | S901B OTA bootloader/firmware assertions | **MISSING / OTA BLOCKER** | A16 four-part FUS + supported rollback/upgrade path |
 | A16 `super` / `group_basic` geometry | PROVISIONAL (from FYI3) | Extracted A16 `lpdump`; replace unverified figures |
 | Boot/dtbo/vendor_boot/module ABI | UNVERIFIED | Native A16 images, stock kernel source and module inventory |
@@ -33,10 +33,12 @@ Scope: source review ONLY; no firmware extraction, host compilation or hardware 
 `scripts/utils/install_utils.sh` searches for
 `target/r0s/installer/recovery.fstab` and, failing that,
 `platform/exynos2200/installer/recovery.fstab`.
-Neither file exists in the current port. Do **not** copy the Exynos 2100
-`recovery.fstab` or fabricate native Android 16 partitions to satisfy the
-installer. The unconditional `E3099` abort remains installed, but the recovery
-fstab is separately required before building a production full OTA.
+A provisional LineageOS Exynos 2200-based *updater block locator* now exists
+at `target/r0s/installer/recovery.fstab`. This is not a native Samsung A16
+recovery fstab and does not qualify recovery or flashing. Do not copy the
+Exynos 2100 fstab. The unconditional `E3099` installer abort stays enforced.
+The source-level mapping test is `scripts/ci/check_r0s_ota_map.sh`;
+native A16 recovery/OTA compatibility is still a production blocker.
 
 ## Code policy
 

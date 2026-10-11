@@ -61,7 +61,7 @@ https://github.com/milxnaq/android_device_samsung_s5e9925/blob/android-12.1/reco
 
 This older fstab does not establish current Android 16 compatibility.
 
-UN1CA's `scripts/utils/install_utils.sh` expects `target/r0s/installer/recovery.fstab` or `platform/exynos2200/installer/recovery.fstab` when resolving nonlogical targets. Neither is supplied yet. The missing A16 recovery fstab remains an **OTA BLOCKER**, and the `E3099` installer abort stays in place.
+UN1CA's `scripts/utils/install_utils.sh` expects `target/r0s/installer/recovery.fstab` or `platform/exynos2200/installer/recovery.fstab` when resolving nonlogical targets. A **provisional block-locator file** now exists under `target/r0s/installer/recovery.fstab`, sourced only from modern LineageOS Exynos 2200 mapping references. It is not Samsung native A16 recovery evidence; real recovery and production OTA remain **BLOCKED**, and the `E3099` installer abort stays in place. See `docs/r0s/RECOVERY_OTA_STAGE.md`.
 
 ## Promotion requirements
 
