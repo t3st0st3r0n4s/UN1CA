@@ -74,3 +74,7 @@ Primary field-format reference: https://source.android.com/docs/core/architectur
 ## UN1CA ROM workdir built on real GZH3 A16 firmware (2026-10-12)
 
 The user successfully ran make_rom.sh --no-target-files. Upstream modified workdir copies of the boot chain: boot.img 36,700,176 bytes versus stock 67,108,864; vendor_boot.img 15,912,960 versus stock 33,554,432; dtbo.img 2,204,388 versus stock 8,388,608. The log shows removal of AVB/Samsung footers, vendor_boot fstab patching and a PROCA boot-kernel patch; modified images must not inherit stock image qualifications. scripts/r0s/inspect_built_workdir.sh is a read-only postbuild header, size, archive and module audit; pending host execution. No boot or board PASS claimed.
+
+## Post-workdir image parser fix (2026-10-12)
+
+Host inspection of modified UN1CA `boot.img` succeeded: header v4, `os_version=12.0.0`, image SHA256 `cf90d5cba49d65cff2c67a35d5138f8ef02b6bf98aa3592d6625a27aeefd0498`. The same audit's vendor_boot check failed because it searched for the **boot.img** label `boot image header version: 4` instead of the actual AOSP **vendor_boot** label `vendor boot image header version: 4`. `unpack_bootimg` itself returned success before this false negative. The specific header-label check has now been fixed and a synthetic test added; a new real-host audit remains pending. Nothing was repacked or flashed to correct this source-level issue. Android format reference: https://android.googlesource.com/platform/system/tools/mkbootimg/+/808d42e197506319ee65eb078d3defd9602e2ac2/unpack_bootimg.py

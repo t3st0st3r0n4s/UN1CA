@@ -124,3 +124,9 @@
 ## Native GZH3 UN1CA ROM workdir host build PASS (2026-10-12)
 
 Host at pinned source 8e16a6479c8fc354490225504c4bfd66ad042088 ran make_rom.sh --no-target-files; upstream UN1CA completed workdir assembly and APK/JAR rebuild in 19min19sec with no reported build errors. Workdir 11G: system 7.1G, product 1.3G, vendor 2.1G, odm 1.2M, vendor_dlkm 15M, with embedded system_ext. Stock firmware remains separately extracted. Work kernel images modified: boot.img 36700176 bytes (stock 67108864), vendor_boot.img 15912960 (stock 33554432), dtbo.img 2204388 (stock 8388608). Upstream copied, stripped footers and patched PROCA/vendor_boot fstab in work copies. Modified images have NOT yet been revalidated for header shape, kernel ABI or runtime. No target-files or OTA ZIP generated; E3099 active. Disk free now ~41G; capacity gate required before image generation. Added read-only inspect_built_workdir.sh (host run pending).
+
+## Post-workdir audit: header-label regression (2026-10-12)
+
+- Host workdir audit passed exact five-partition layout with embedded system_ext, API 36/UN1CA identity, four rebuilt APK/JAR ZIP CRCs, five stock vendor_dlkm modules preserved byte-for-byte, and parsed modified boot.img header v4 (work SHA256 `cf90d5cba49d65cff2c67a35d5138f8ef02b6bf98aa3592d6625a27aeefd0498`).
+- Audit stopped on `rebuilt vendor_boot header not v4` **after** unpack_bootimg successfully parsed the image. This was caused by the inspector requiring the `boot image header version: 4` label for both boot and vendor_boot; AOSP prints `vendor boot image header version: 4` for the latter.
+- Added a small read-only label validator plus synthetic positive/negative regression test. It must still be rerun against the real assembled workdir. Work vendor_boot SHA256 `fb3837838c597d39f58ed103ac8476b0c7cfebbe47dff400e870d55250e4a0a8` remains a recorded file hash, not boot qualification. E3099 remains locked.

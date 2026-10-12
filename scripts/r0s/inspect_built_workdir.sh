@@ -92,9 +92,14 @@ for p in boot vendor_boot dtbo; do
         mkdir "$TMP/$p"
         unpack_bootimg --boot_img "$staged" --out "$TMP/$p" > "$TMP/$p.txt" 2>&1 ||
             fail "$p could not be unpacked"
-        grep -Fxq 'boot image header version: 4' "$TMP/$p.txt" ||
-            fail "rebuilt $p header not v4"
-        grep -E '^(os version|os patch level|boot image header version|command line args):' \
+        # Android unpack_bootimg prints DIFFERENT header labels for boot and
+        # vendor_boot; testing both against the boot label rejects valid v4.
+        if ! bash "$ROOT/scripts/r0s/check_unpacked_boot_header.sh" "$p" "$TMP/$p.txt"; then
+            printf '%s header parser output:\n' "$p" >&2
+            cat "$TMP/$p.txt" >&2
+            fail "rebuilt $p header verification failed"
+        fi
+        grep -E '^(os version|os patch level|boot image header version|vendor boot image header version|vendor command line args|command line args):' \
             "$TMP/$p.txt" || true
     fi
 done
