@@ -1,7 +1,9 @@
 # Copyright (c) 2026 UN1CA contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Native Exynos 2200 Android 16 stage. Partition sizes are provisional:
-# cross-referenced with LineageOS s5e9925-common lineage-23.2, not stock GZH3.
+# Native Exynos 2200 Android 16 stage.
+# GZH3 extracted image sizes match boot=67108864, vendor_boot=33554432,
+# dtbo=8388608; physical partition geometry & recovery are not BOARD-proven.
+# Cache cap remains provisional.
 # No Android 15 vendor blobs, fstab overrides or custom kernel are imported.
 TARGET_USE_DYNAMIC_PARTITIONS=true
 TARGET_SUPER_GROUP_NAME="group_basic"

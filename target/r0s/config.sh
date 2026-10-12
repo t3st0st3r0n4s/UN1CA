@@ -28,7 +28,8 @@ TARGET_EXTRA_FIRMWARES=()
 # Firmware revision is inherited from UN1CA until a reproducible A16 pin is selected.
 TARGET_FIRMWARE="$SOURCE_FIRMWARE"
 
-# S901B super layout recorded for FYI3 (A15); MUST be validated against native
-# Android 16 lpdump before generating a flashable image.
+# These super/group sizes are confirmed by real GZH3 Android 16 lpdump.
+# Stock logical list: system odm product vendor vendor_dlkm.
+# This does NOT qualify ROM packaging or recovery OTA.
 TARGET_SUPER_PARTITION_SIZE=11744051200
 TARGET_GROUP_BASIC_SIZE=11739856896

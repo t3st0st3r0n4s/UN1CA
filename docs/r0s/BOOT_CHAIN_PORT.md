@@ -60,3 +60,13 @@ The synthetic gate `scripts/ci/test_r0s_boot_chain.sh` tests acceptable mock met
 - Root, recovery OTA, kernel ABI and board remain BLOCKED/DEFERRED.
 
 Primary field-format reference: https://source.android.com/docs/core/architecture/bootloader/boot-image-header
+
+## Genuine GZH3 boot metadata verified on host (2026-10-12)
+
+- Synthetic and real boot metadata inspector PASS.
+- Stock `boot.img` 67108864 bytes; `vendor_boot.img` 33554432 bytes; `dtbo.img` 8388608 bytes. They match expected image capacities exactly, but this alone does not prove GPT partition block capacities.
+- `boot.img`: header v4; raw boot-header `os_version=12.0.0`, patch level `2026-08`.
+- `vendor_boot.img`: header v4; `os_version` not recorded.
+- `recovery.img`: header v2, raw boot-header `os_version=12.0.0`, patch `2026-08`, size 100663296 bytes, SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`.
+- Native `vendor/etc/fstab.s5e9925` SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`. This is vendor first-stage fstab, not verified native recovery fstab.
+- Remaining gates: recovery ramdisk, kernel/module ABI, full ROM and physical S901B.

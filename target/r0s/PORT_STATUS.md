@@ -92,3 +92,12 @@
 - Stock system SDK 36; firmware inspector PASS. Stock boot header v4 carries `os_version=12.0.0`; incorrect earlier boot inspector forced 16 and failed. Boot-header raw value validation adjusted, rerun pending.
 - Free disk after extraction around 55 GB. No ROM build or device testing.
 - Full raw SHA256 image evidence is in `docs/r0s/BOOT_CHAIN_PORT.md`. **E3099** remains locked.
+
+## Stock GZH3 boot & mapping host evidence (2026-10-12)
+
+- Real boot-chain metadata inspector PASS; boot/vendor_boot header v4 and recovery header v2; SDK 36 independently proven by firmware inspector.
+- Native super geometry verified: 11744051200 bytes total, group_basic max 11739856896; logical partitions are `system odm product vendor vendor_dlkm`.
+- Corrected staged OTA locator map to include native `odm` and not assume a separate `system_ext` logical partition; CI and firmware fixture tests now enforce the five-name layout.
+- Stock GZH3 vendor fstab SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`; native recovery ramdisk remains uninspected.
+- Native recovery image SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`, 100663296 bytes, header v2. This does NOT certify custom recovery or OTA.
+- User host has about 55 GB free after stock extraction. Installer `E3099` remains locked.
