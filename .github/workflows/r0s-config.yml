@@ -17,6 +17,7 @@ on:
       - 'scripts/r0s/inspect_recovery_abi.sh'
       - 'scripts/r0s/check_recovery_ota_map.sh'
       - 'scripts/ci/test_r0s_recovery_ota_map.sh'
+      - 'scripts/ci/test_r0s_ota_op_list.sh'
       - 'scripts/ci/test_r0s_boot_chain.sh'
       - 'scripts/ci/check_r0s_ota_map.sh'
       - 'staging/r0s/ksunext/**'
@@ -47,6 +48,9 @@ jobs:
       - name: Test native recovery/OTA fstab consistency (synthetic only)
         shell: bash
         run: bash scripts/ci/test_r0s_recovery_ota_map.sh
+      - name: Exercise actual upstream dynamic partition op-list generator
+        shell: bash
+        run: bash scripts/ci/test_r0s_ota_op_list.sh
       - name: Validate provisional updater-script map and safety lock
         shell: bash
         run: bash scripts/ci/check_r0s_ota_map.sh

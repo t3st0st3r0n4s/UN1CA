@@ -115,3 +115,8 @@
 - Stock recovery header includes `androidboot.selinux=permissive`; no normal-OS SELinux claim.
 - All five stock vendor .ko files passed exact `5.10.237-android12-9-31999025-abS901BXXSOGZH3` vermagic coherence check. Rebuilt kernel Module.symvers/CRC and BOARD still untested.
 - New read-only native recovery/vendor/super/staging consistency verifier and synthetic negative tests staged. Host rerun pending. E3099 locked; no ROM flash.
+
+## Dynamic operation-list prebuild CI gate (2026-10-12)
+
+- Added `scripts/ci/test_r0s_ota_op_list.sh`: isolated execution of UN1CA's real dynamic op-list generator on 4096-byte synthetic images; checks exact five GZH3 logical names and pinned group capacity; negative tests flag invented separate `system_ext` and group overflow.
+- Source-level test is pending host execution; it does not create the ROM, target-files ZIP, or recovery OTA. Stock firmware and mandatory installer abort untouched.
