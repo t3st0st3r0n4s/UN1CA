@@ -30,9 +30,17 @@ for part in boot vendor_boot dtbo; do
         [[ -f "$metadata" ]] || fail "missing upstream ${part}.img_metadata.txt"
         hdr="$(read_field header_version "$metadata")"
         [[ "$hdr" == 4 ]] || fail "$part header version is '${hdr:-missing}', expected v4 candidate"
+        # The mkbootimg os_version is image HEADER metadata, not the
+        # ro.build.version.sdk of the extracted Android system. Real Samsung
+        # S901B GZH3/A16 boot.img reports os_version=12.0.0 (SDK is 36).
+        # Validate formatting without falsely requiring header OS = 16.
         os="$(read_field os_version "$metadata")"
-        [[ -z "$os" || "$os" == 16 || "$os" == 16.* ]] || fail "$part boot header claims OS ${os}, not 16"
-        printf 'metadata=%s header_version=%s os_version=%s\n' "$(basename "$metadata")" "$hdr" "${os:-not-recorded}"
+        [[ -z "$os" || "$os" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] ||
+            fail "$part malformed boot-header os_version: $os"
+        printf 'metadata=%s header_version=%s os_version_header=%s\n' "$(basename "$metadata")" "$hdr" "${os:-not-recorded}"
+        if [[ -n "$os" && "$os" != 16 && "$os" != 16.* ]]; then
+            printf 'BOOT HEADER NOTE: %s records os_version=%s; this is not the Android system SDK\n' "$part" "$os"
+        fi
     fi
 done
 if [[ -f "$FWDIR/vendor/etc/fstab.s5e9925" ]]; then

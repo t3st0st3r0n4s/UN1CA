@@ -1,6 +1,6 @@
 # S901B Android 16 firmware and recovery research (11 October 2026)
 
-**Status: PUBLIC RESEARCH ONLY. No Android 16 firmware has been downloaded or extracted for this port.**
+**Status: HOST FIRMWARE EXTRACTED (2026-10-12), no ROM/kernel build or board qualification.**
 
 ## Public Samsung EUX firmware candidate
 
@@ -16,7 +16,7 @@
 | Public archive MD5 | `9e4e16470c68c344a3aefbb3eebd727a` (third-party archive listing, **not** a hash verified by this project) |
 | FOTA `PDA/CSC/MODEM` | `S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3` (observed on Ubuntu host 2026-10-11) |
 | Odin archive components | AP/BL/CP/CSC tarballs **not yet downloaded/verified** |
-| Extracted image hashes / fstab / lpdump | **Not verified** |
+| Extracted image hashes / fstab / lpdump | **Host extraction verified; image SHA256 and geometry recorded in BOOT_CHAIN_PORT.md** |
 
 Primary Samsung publication:
 https://doc.samsungmobile.com/SM-S901B/021722220304/roh.html
@@ -41,9 +41,9 @@ UN1CA `scripts/extract_fw.sh` already creates:
 
 Use `scripts/r0s/inspect_extracted_firmware.sh` only after a separately authorised extraction exists. The script compares the two release markers (if both are present), source SDK, stock boot-image SHA256, and extracted dynamic partition geometry against the **provisional** Android 15-derived figures in `target/r0s/config.sh`. It reports candidate fstab locations and module names, but does not produce a qualified recovery fstab or boot image.
 
-Without an extraction, the inspector intentionally refuses to run. GitHub Actions uses only `scripts/ci/test_r0s_firmware_inspector.sh` with generated **synthetic files**.
+With a matching extraction, the firmware inspector now runs and passed on the real GZH3 images. GitHub Actions uses only `scripts/ci/test_r0s_firmware_inspector.sh` with generated **synthetic files**.
 
-Example for a future already-existing local extraction (not necessary now):
+Example for the already-existing host extraction:
 
 ```bash
 bash scripts/r0s/inspect_extracted_firmware.sh out/fw/SM-S901B_EUX

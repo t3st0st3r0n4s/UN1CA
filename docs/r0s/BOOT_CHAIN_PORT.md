@@ -1,6 +1,6 @@
 # Exynos 2200 boot-chain preparation — UN1CA sixteen-r0s
 
-Status: **SOURCE/STATIC GATES ONLY**. No stock A16 image extracted or boot tested.
+Status: **STOCK GZH3 FIRMWARE EXTRACTED / BOOT METADATA UNDER REVIEW / BOARD NOT TESTED**. The firmware was extracted on the Ubuntu host; no ROM/kernel build or physical boot test.
 
 ## Donor/source decision
 
@@ -20,19 +20,19 @@ Status: **SOURCE/STATIC GATES ONLY**. No stock A16 image extracted or boot teste
 | `TARGET_SUPER_PARTITION_SIZE` | 11744051200 | Prior FYI3; also Lineage reference |
 | `TARGET_GROUP_BASIC_SIZE` | 11739856896 | Prior FYI3 / Lineage group-size numeric reference, group naming differs |
 
-Do not treat these as extracted GZH3 partition metadata. Replace/corroborate only against stock Samsung metadata before a ROM or OTA can be accepted.
+The S901B GZH3 extraction on 2026-10-12 **confirms** the stock `super_partition_size=11744051200`, `super_partition_group=group_basic`, and `super_group_basic_group_size=11739856896`. Other size references remain provisional except `boot.img`'s exact extracted size of 67108864 bytes (not proof of device partition block capacity).
 
 ## Reuse of UN1CA upstream extraction
 
 `scripts/extract_fw.sh` already emits `out/fw/SM-S901B_EUX/boot.img_metadata.txt` and `vendor_boot.img_metadata.txt`, with boot header version, OS version and other image details, as well as `kernel/boot.img`, `kernel/vendor_boot.img`, and `kernel/dtbo.img`.
 
-The script `scripts/r0s/inspect_boot_chain.sh` consumes those outputs. It checks the expected boot header v4, provisional partition-size bounds and Android 16 boot-header OS identification when present, and prints SHA256, native vendor fstab location and module inventory. This is deliberately **read-only**, with no kernel build, modification, flashing or runtime assertion.
+The script `scripts/r0s/inspect_boot_chain.sh` consumes those outputs. It checks boot header v4, provisional partition-size bounds and the **syntax** of the raw boot-header OS field. The header field is **not** the system's Android version (SDK 36 is verified independently from extracted `system/system/build.prop`). It prints SHA256, native vendor fstab location and module inventory. This is deliberately **read-only**, with no kernel build, modification, flashing or runtime assertion.
 
 The synthetic gate `scripts/ci/test_r0s_boot_chain.sh` tests acceptable mock metadata, an invalid header and an oversized image. It does not establish that actual Samsung GZH3 images pass.
 
 ## Missing gates
 
-- Exact four-part FUS release and stock boot/DTBO/vendor_boot bytes.
+- Exact stock boot/DTBO/vendor_boot files have now been extracted and SHA256 recorded; internal compatibility and stock recovery remain unqualified.
 - Matched kernel source, toolchain, config, Module.symvers and exported-symbol CRC compatibility with Samsung vendor modules.
 - Actual native A16 recovery fstab and UN1CA full-OTA installer integration.
 - Root support (KernelSU Next), enforcing SELinux and physical S901B hardware tests.
@@ -45,3 +45,18 @@ The synthetic gate `scripts/ci/test_r0s_boot_chain.sh` tests acceptable mock met
 - https://github.com/LineageOS/android_device_samsung_s5e9925-common/blob/lineage-23.2/configs/init/fstab.s5e9925
 - https://opensource.samsung.com/
 - https://github.com/BuSung-dev/Root-My-Galaxy-Payloads/pull/138
+
+## Real Samsung S901B GZH3 host extraction (2026-10-12)
+
+- `PDA/CSC/MODEM`: `S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3` verified against the local Odin release marker.
+- Native `super.img` extraction and partitions: `system odm product vendor vendor_dlkm`; sizes match the earlier static references.
+- System `ro.build.version.sdk=36` (**Android 16**).
+- Stock `boot.img`: 67108864 bytes, SHA256 `c805736861ad444f0e874cbd6b3f2e006360aae36364e1b2d58d0952f14de7c1`; `header_version=4` and `os_version=12.0.0` as recorded by UN1CA's `unpack_bootimg` parser.
+- Stock `vendor_boot.img`: SHA256 `f329135a8fcc199d6e763663267ba2c18e8c0e9f2e8189be9efa158a73cabd47`.
+- Stock `dtbo.img`: SHA256 `4c0c923d9f7fb4571be003f9e45a19df37473822136442f4e512deb7fdccf48e`.
+- Native modules observed: `fingerprint.ko`, `fingerprint_sysfs.ko`, `input_booster_lkm.ko`, `sec_debug_coredump.ko`, `wlan.ko`.
+- `recovery.img` was extracted; **its ramdisk, installer fstab and boot compatibility are not yet inspected**.
+- Firmware-inspector PASS; original boot inspector exited 2 **solely because it conflated the boot-header OS field with the Android system version**. Corrected inspector must be rerun before claiming boot-metadata precheck pass.
+- Root, recovery OTA, kernel ABI and board remain BLOCKED/DEFERRED.
+
+Primary field-format reference: https://source.android.com/docs/core/architecture/bootloader/boot-image-header

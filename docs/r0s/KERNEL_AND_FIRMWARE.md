@@ -14,3 +14,9 @@ Stage: RESEARCH / NO IMPLEMENTATION / NO FLASH.
 Upstream documentation:
 - https://doc.samsungmobile.com/SM-S901B/021722220304/roh.html
 - https://opensource.samsung.com/uploadList?classification1=mobile_phone&menuItem=mobile
+
+## Native GZH3 firmware now extracted on Ubuntu host (2026-10-12)
+
+The user has downloaded and checksum-verified Samsung A16 Odin archives and extracted matching GZH3 stock images using upstream UN1CA tools. System API is 36. Super geometry matches exactly: 11744051200 bytes, group_basic 11739856896. Stock boot/dtbo/vendor_boot SHA256 and module names are preserved in `BOOT_CHAIN_PORT.md`.
+
+The original boot inspector rejected stock `boot.img` because its header independently stores `os_version=12.0.0`. This is not `ro.build.version.sdk`; parsing/validating the raw value must not require `16`. The stock image and recorded header are retained untouched. Kernel ABI and real-device behavior remain **UNVERIFIED**.

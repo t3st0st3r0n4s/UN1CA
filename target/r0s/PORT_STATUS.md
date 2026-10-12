@@ -1,6 +1,6 @@
 # UN1CA `sixteen-r0s` status
 
-**STATE:** CONFIG_PREPARED / HOST_UNVERIFIED / BOARD_DEFERRED / INSTALLER_LOCKED.
+**STATE:** HOST_CONFIG_PASS / FIRMWARE_METADATA_PASS / BOOT_METADATA_PENDING_RERUN / ROM_UNBUILT / BOARD_DEFERRED / INSTALLER_LOCKED.
 
 ## Source baseline
 
@@ -22,9 +22,9 @@
 
 ## What is still unverified
 
-- Exact A16 Odin AP/BL/CP/CSC archive/image hashes; firmware selection currently follows latest from UN1CA's downloader.
-- Exact A16 `super` group sizes (current figures are FYI3-derived placeholders).
-- Stock A16 kernel, DTBO, vendor_boot and module ABI compatibility; no A16 KernelSU Next work performed.
+- Odin components were downloaded and verified by upstream UN1CA's embedded MD5 checks. AP/BL/CP/CSC archive SHA256 inventory remains to be recorded.
+- Native GZH3 `super` group sizes now confirmed by UN1CA extraction: 11744051200 total and 11739856896 for `group_basic`.
+- Stock A16 boot, vendor_boot and dtbo binaries are extracted and hashed, but module ABI compatibility and A16 KernelSU Next remain unverified.
 - Complete patched ROM/target-files, recovery, clean/dirty upgrade path, and real board tests.
 
 ## Safety and CI
@@ -83,3 +83,12 @@
 - `protobuf-compiler` was checked as a command incorrectly in the host inventory; executable is `protoc`, which still needs host verification.
 - Corrected the firmware inspector and fixtures to follow UN1CA's **three-component** `PDA/CSC/MODEM` marker. This change is source-level; a genuine firmware extraction has not been tested.
 - Disk available before firmware/tool preparation: approximately **83 GiB reported by df -h**.
+
+## Native extraction HOST evidence (2026-10-12)
+
+- UN1CA downloader successfully fetched matching `S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3` and verified AP/BL/CP/CSC/HOME_CSC embedded MD5 checks.
+- UN1CA extractor produced `system`, `odm`, `product`, `vendor`, `vendor_dlkm` and stock `boot.img`, `vendor_boot.img`, `dtbo.img`, `recovery.img`.
+- Genuine `os_partitions_metadata.txt`: `11744051200` super; `group_basic` `11739856896`; five logical partitions.
+- Stock system SDK 36; firmware inspector PASS. Stock boot header v4 carries `os_version=12.0.0`; incorrect earlier boot inspector forced 16 and failed. Boot-header raw value validation adjusted, rerun pending.
+- Free disk after extraction around 55 GB. No ROM build or device testing.
+- Full raw SHA256 image evidence is in `docs/r0s/BOOT_CHAIN_PORT.md`. **E3099** remains locked.
