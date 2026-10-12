@@ -90,3 +90,15 @@ Synthetic OTA operation-list tests passed. Real GZH3 UN1CA workdir assembled suc
 ## Target-files storage and reuse constraint (2026-10-12)
 
 Real workdir audit PASS, with 41 GiB free. `make_rom.sh` computes `GET_WORK_DIR_HASH()` across `unica`, `platform/exynos2200` and `target/r0s` **including status Markdown**. Documentation edits in `target/r0s` therefore risk an unnecessary rebuild; a direct invocation of upstream `scripts/internal/create_target_files_zip.sh` on the already-built workdir is the safer later route, once storage is gated. It builds temporary EROFS partition images, an `unsparse_super_empty.img` with 11,744,051,200-byte super geometry, and a compressed target-files zip. Disk peak has not been measured; keep the 12 GB Odin and 13 GB extracted stock firmware intact until a controlled retention decision. No target-files or OTA ZIP yet.
+
+## Read-only target-files archive structural gate (2026-10-12)
+
+Added `scripts/r0s/check_target_files_zip.py` to inspect a future real `r0s_*target_files.zip` using only the ZIP central directory, bounded `build_info.txt`, and the first 28 bytes of image members. It enforces the **actual native five-image layout** (`system odm product vendor vendor_dlkm`), rejects a separate `system_ext`, verifies native `group_basic` geometry, Android 16/S901B identity, raw boot/vendor_boot/dtbo image reference caps, and re-checks the `E3099` source assertion. Crucially it reads Android sparse image headers to compare **expanded** logical sizes against the 11,739,856,896-byte group cap; an apparent small ZIP member is *not* proof of a small logical image. It does **not** extract or build images.
+
+Synthetic fixtures exercise correct layout and rejection of added/missing partitions, sparse group overflow, SDK/device mismatches, duplicate ZIP member names, malicious paths, and missing installer lock. CI validates that checker; this does not establish the validity of future real target-files artifacts, image AVB signatures, stock kernel ABI, or recovery/BOARD support.
+
+When an actual target-files ZIP exists, run:
+
+`python3 scripts/r0s/check_target_files_zip.py /path/to/r0s_VERSION-target_files.zip`
+
+**Do not generate or flash OTA merely because the ZIP structure passes**. Actual image construction, storage peak, modified kernel/ramdisk review, recovery updater semantics and physical board validation remain separate gates.

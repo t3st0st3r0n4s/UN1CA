@@ -20,6 +20,8 @@ on:
       - 'scripts/ci/test_r0s_ota_op_list.sh'
       - 'scripts/r0s/inspect_built_workdir.sh'
       - 'scripts/r0s/inspect_postbuild_boot_ramdisks.sh'
+      - 'scripts/r0s/check_target_files_zip.py'
+      - 'scripts/ci/test_r0s_target_files_zip.py'
       - 'scripts/r0s/check_unpacked_boot_header.sh'
       - 'scripts/ci/test_r0s_boot_header_labels.sh'
       - 'scripts/ci/test_r0s_boot_chain.sh'
@@ -64,6 +66,9 @@ jobs:
       - name: Syntax-check real-stock and workdir ramdisk comparison
         shell: bash
         run: bash -n scripts/r0s/inspect_postbuild_boot_ramdisks.sh
+      - name: Test native GZH3 target-files ZIP checker (synthetic only)
+        shell: bash
+        run: python3 scripts/ci/test_r0s_target_files_zip.py
       - name: Validate provisional updater-script map and safety lock
         shell: bash
         run: bash scripts/ci/check_r0s_ota_map.sh
