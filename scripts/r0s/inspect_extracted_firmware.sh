@@ -39,11 +39,22 @@ GROUP_SIZE="$(field "super_${GROUP}_group_size" "$META")"
 [[ "$GROUP_SIZE" =~ ^[0-9]+$ ]] || fail "invalid or missing super group size"
 (( GROUP_SIZE > 0 && GROUP_SIZE < PARTITION_SIZE )) || fail "invalid partition/group sizing"
 
+PARTITION_LIST="$(field "super_${GROUP}_partition_list" "$META")"
+[[ -n "$PARTITION_LIST" ]] || fail 'missing native super partition list'
+mapfile -t partitions < <(tr ' ' '\n' <<< "$PARTITION_LIST" | sed '/^$/d' | LC_ALL=C sort)
+mapfile -t expected_partitions < <(printf '%s\n' system odm product vendor vendor_dlkm | LC_ALL=C sort)
+[[ "${partitions[*]}" == "${expected_partitions[*]}" ]] ||
+    fail "unexpected native GZH3 logical partition set: $PARTITION_LIST"
+for part in "${expected_partitions[@]}"; do
+    [[ -d "$FWDIR/$part" ]] || fail "missing extracted logical partition: $part"
+done
+
 printf 'r0s Android 16 firmware evidence (read-only)\n'
 printf 'firmware_fota_triplet=%s\n' "$EXTRACTED"
 printf 'super_partition_size=%s\n' "$PARTITION_SIZE"
 printf 'super_partition_group=%s\n' "$GROUP"
 printf 'super_group_size=%s\n' "$GROUP_SIZE"
+printf 'super_partition_list=%s\n' "$PARTITION_LIST"
 
 if [[ "$PARTITION_SIZE" != 11744051200 || "$GROUP_SIZE" != 11739856896 ]]; then
     printf 'GEOMETRY REVIEW REQUIRED: extracted A16 sizes differ from provisional FYI3 values.\n' >&2
@@ -73,6 +84,22 @@ if [[ -d "$FWDIR/vendor/etc" ]]; then
 else
     fail "no native vendor/etc directory for fstab inventory"
 fi
+# Validate stock vendor first-stage fstab, distinct from recovery fstab.
+VENDOR_FSTAB="$FWDIR/vendor/etc/fstab.s5e9925"
+[[ -f "$VENDOR_FSTAB" ]] || fail 'native vendor fstab.s5e9925 missing'
+for part in boot vendor_boot dtbo recovery; do
+    awk -v dev="/dev/block/by-name/$part" -v mp="/$part" '
+        $1 == dev && $2 == mp { found=1 }
+        END { if (!found) exit 1 }
+    ' "$VENDOR_FSTAB" || fail "vendor fstab missing /$part"
+done
+for part in "${expected_partitions[@]}"; do
+    awk -v p="$part" -v mp="/$part" '
+        $1 == p && $2 == mp { found=1 }
+        END { if (!found) exit 1 }
+    ' "$VENDOR_FSTAB" || fail "vendor fstab missing logical /$part"
+done
+printf 'native_vendor_fstab_locators=PASS (recovery still unverified)\n'
 printf 'native_vendor_modules:\n'
 if [[ -d "$FWDIR/vendor_dlkm/lib/modules" ]]; then
     find "$FWDIR/vendor_dlkm/lib/modules" -maxdepth 2 -type f -name '*.ko' -printf '%P\n' | LC_ALL=C sort

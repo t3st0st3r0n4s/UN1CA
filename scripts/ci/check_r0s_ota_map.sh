@@ -13,10 +13,15 @@ for e in \
   '/dev/block/by-name/recovery /recovery'; do
     printf '%s\n' "${entries[@]}" | grep -Fxq "$e" || fail "missing raw mapping $e"
 done
-for p in system vendor product vendor_dlkm system_ext; do
+for p in system odm product vendor vendor_dlkm; do
   printf '%s\n' "${entries[@]}" | grep -Fxq "$p /$p" || fail "missing logical mapping $p"
 done
 [[ ! -e target/r0s/installer/install-end.edify ]] || fail 'Unexpected device-specific extra updater script'
+# Stock GZH3 super metadata contains exactly five logical partitions.
+actual_logical="$(awk 'NF && $1 !~ /^#/ && $1 !~ /^\/dev\/block\// {print $1}' target/r0s/installer/recovery.fstab | LC_ALL=C sort)"
+expected_logical="$(printf '%s\n' system odm product vendor vendor_dlkm | LC_ALL=C sort)"
+[[ "$actual_logical" == "$expected_logical" ]] || fail 'staged logical set differs from native GZH3 super'
+
 # Keep the installer abort strictly before ANY write operation in generated updater-script.
 grep -Eq '^abort\("E3099:.*NOT qualified for flashing' target/r0s/installer/assertions.edify || fail 'E3099 lock missing'
 ota_source='scripts/internal/build_full_ota_zip.sh'
@@ -41,7 +46,7 @@ for p in boot vendor_boot dtbo recovery; do
     actual="$(GET_DEVICE_FROM_MOUNTPOINT "/$p")"
     [[ "$actual" == "\"/dev/block/by-name/$p\"" ]] || fail "bad locator /$p: $actual"
 done
-for p in system vendor product vendor_dlkm system_ext; do
+for p in system odm product vendor vendor_dlkm; do
     actual="$(GET_DEVICE_FROM_MOUNTPOINT "/$p")"
     [[ "$actual" == "map_partition(\"$p\")" ]] || fail "bad logical locator /$p: $actual"
 done
@@ -51,4 +56,4 @@ fi
 if (GET_DEVICE_FROM_MOUNTPOINT '/dt' >/dev/null 2>&1); then
     fail 'Unsupported /dt unexpectedly resolved'
 fi
-printf 'r0s OTA-MAP PREPARED: upstream resolver PASS; Samsung A16 recovery and BOARD not qualified\n'
+printf 'r0s OTA-MAP PREPARED: native GZH3 five-partition map PASS; recovery and BOARD not qualified\n'
