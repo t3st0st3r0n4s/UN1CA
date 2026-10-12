@@ -101,3 +101,9 @@
 - Stock GZH3 vendor fstab SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`; native recovery ramdisk remains uninspected.
 - Native recovery image SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`, 100663296 bytes, header v2. This does NOT certify custom recovery or OTA.
 - User host has about 55 GB free after stock extraction. Installer `E3099` remains locked.
+
+## Recovery ramdisk/module ABI next host gate (2026-10-12)
+
+- Native GZH3 recovery ramdisk contains `system/etc/recovery.fstab` and Samsung-specific init rc files. Stock recovery header command line reports `androidboot.selinux=permissive`; this does NOT prove normal Android 16 runs permissive.
+- All five extracted `.ko` files carry the same stock release `5.10.237-android12-9-31999025-abS901BXXSOGZH3`, with modversions, but kernel source/symbol CRC/loadable ABI remain unverified.
+- Added `scripts/r0s/inspect_recovery_abi.sh` to read stock recovery fstab contents and verify consistent GZH3 stock module vermagic on host. The script is read-only; real-run result pending. Installer still `E3099` locked.

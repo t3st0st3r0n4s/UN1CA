@@ -14,6 +14,7 @@ on:
       - 'scripts/ci/test_r0s_firmware_inspector.sh'
       - 'scripts/r0s/inspect_extracted_firmware.sh'
       - 'scripts/r0s/inspect_boot_chain.sh'
+      - 'scripts/r0s/inspect_recovery_abi.sh'
       - 'scripts/ci/test_r0s_boot_chain.sh'
       - 'scripts/ci/check_r0s_ota_map.sh'
       - 'staging/r0s/ksunext/**'
@@ -38,6 +39,9 @@ jobs:
       - name: Check native boot metadata safety gates (synthetic only)
         shell: bash
         run: bash scripts/ci/test_r0s_boot_chain.sh
+      - name: Syntax-check the read-only native recovery inspector
+        shell: bash
+        run: bash -n scripts/r0s/inspect_recovery_abi.sh
       - name: Validate provisional updater-script map and safety lock
         shell: bash
         run: bash scripts/ci/check_r0s_ota_map.sh

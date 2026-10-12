@@ -66,3 +66,7 @@ Reference: https://github.com/LineageOS/android_device_samsung_s5e9925-common/bl
 - Stock `vendor/etc/fstab.s5e9925` SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`.
 - `recovery.img`: 100663296 bytes, header v2, SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`. Ramdisk remains uninspected.
 - The staging file is **not** a substitute for Samsung's native recovery image or installer compatibility testing; `E3099` abort remains mandatory.
+
+## Recovery ramdisk discovered on the host (2026-10-12)
+
+Stock recovery header v2 and LZ4 ramdisk unpacked. Contents include `system/etc/recovery.fstab`, `init.recovery.s5e9925.rc`, `init.recovery.samsung.rc` and `system/bin/recovery`. Recovery-specific command line includes `androidboot.selinux=permissive`; this does not describe normal Android SELinux. `scripts/r0s/inspect_recovery_abi.sh` reads and prints the recovery fstab and selected init contents through `cpio --to-stdout` in a temporary directory, with no privileged mount, firmware writes, image changes or phone operations. Genuine host rerun is pending.

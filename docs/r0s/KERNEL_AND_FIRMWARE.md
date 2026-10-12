@@ -20,3 +20,9 @@ Upstream documentation:
 The user has downloaded and checksum-verified Samsung A16 Odin archives and extracted matching GZH3 stock images using upstream UN1CA tools. System API is 36. Super geometry matches exactly: 11744051200 bytes, group_basic 11739856896. Stock boot/dtbo/vendor_boot SHA256 and module names are preserved in `BOOT_CHAIN_PORT.md`.
 
 The original boot inspector rejected stock `boot.img` because its header independently stores `os_version=12.0.0`. This is not `ro.build.version.sdk`; parsing/validating the raw value must not require `16`. The stock image and recorded header are retained untouched. Kernel ABI and real-device behavior remain **UNVERIFIED**.
+
+## Stock GZH3 recovery and module metadata (2026-10-12)
+
+All five GZH3 vendor_dlkm modules share vermagic `5.10.237-android12-9-31999025-abS901BXXSOGZH3 SMP preempt mod_unload modversions aarch64`. This is stock-module coherence, not a rebuilt kernel ABI pass. Dependencies include fingerprint_sysfs/exynos_pm_qos, exynos-ufcc, dss, cnss2, cfg80211 and other Qualcomm/Samsung support modules. Matched kernel source, symbol CRCs and board module loading remain pending.
+
+The native recovery image reports `androidboot.selinux=permissive` in its command line; normal Android SELinux state is **not** determined by this recovery-only flag. Native `system/etc/recovery.fstab` was discovered in its LZ4 ramdisk, but the file content and recovery OTA behavior still need inspection. A read-only host inspector has been staged for this purpose.
