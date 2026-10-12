@@ -107,3 +107,11 @@
 - Native GZH3 recovery ramdisk contains `system/etc/recovery.fstab` and Samsung-specific init rc files. Stock recovery header command line reports `androidboot.selinux=permissive`; this does NOT prove normal Android 16 runs permissive.
 - All five extracted `.ko` files carry the same stock release `5.10.237-android12-9-31999025-abS901BXXSOGZH3`, with modversions, but kernel source/symbol CRC/loadable ABI remain unverified.
 - Added `scripts/r0s/inspect_recovery_abi.sh` to read stock recovery fstab contents and verify consistent GZH3 stock module vermagic on host. The script is read-only; real-run result pending. Installer still `E3099` locked.
+
+## Native recovery fstab host inspection (2026-10-12)
+
+- Recovery LZ4 ramdisk extracted successfully. `system/etc/recovery.fstab` SHA256 `91d60dcf617483a260600d2ea25054a56a7cad806ec6011218b044262fe2b488`.
+- Recovery fstab has all GZH3 logical names and raw boot/vendor_boot/dtbo/recovery paths; additionally mentions `system_ext` absent from the actual five-name super metadata. Staged OTA map correctly excludes it.
+- Stock recovery header includes `androidboot.selinux=permissive`; no normal-OS SELinux claim.
+- All five stock vendor .ko files passed exact `5.10.237-android12-9-31999025-abS901BXXSOGZH3` vermagic coherence check. Rebuilt kernel Module.symvers/CRC and BOARD still untested.
+- New read-only native recovery/vendor/super/staging consistency verifier and synthetic negative tests staged. Host rerun pending. E3099 locked; no ROM flash.

@@ -54,6 +54,12 @@ sha256sum "$TMP/recovery.fstab"
 printf 'recovery_fstab_entry=%s\n' "$ENTRY"
 cat "$TMP/recovery.fstab"
 
+printf '\n===== CROSSCHECK STOCK RECOVERY AGAINST VENDOR AND GZH3 SUPER =====\n'
+bash "$ROOT/scripts/r0s/check_recovery_ota_map.sh" \
+    "$TMP/recovery.fstab" \
+    "$FW/vendor/etc/fstab.s5e9925" \
+    "$FW/os_partitions_metadata.txt"
+
 printf '\n===== RECOVERY INIT ENTRIES =====\n'
 for wanted in init.recovery.s5e9925.rc init.recovery.samsung.rc; do
     ENTRY="$(grep -E "(^|/)$wanted$" "$TMP/entries" | head -1 || true)"

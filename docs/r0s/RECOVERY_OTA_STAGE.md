@@ -1,6 +1,6 @@
 # UN1CA S901B Android 16 — provisional OTA block mapping
 
-**Status: STOCK VENDOR FSTAB/SUPER LOCATORS VERIFIED / RECOVERY RAMDISK UNVERIFIED / INSTALLER LOCKED.**
+**Status: STOCK RECOVERY FSTAB EXTRACTED / OTA SEMANTICS UNVERIFIED / INSTALLER LOCKED.**
 
 ## Why this exists
 
@@ -70,3 +70,11 @@ Reference: https://github.com/LineageOS/android_device_samsung_s5e9925-common/bl
 ## Recovery ramdisk discovered on the host (2026-10-12)
 
 Stock recovery header v2 and LZ4 ramdisk unpacked. Contents include `system/etc/recovery.fstab`, `init.recovery.s5e9925.rc`, `init.recovery.samsung.rc` and `system/bin/recovery`. Recovery-specific command line includes `androidboot.selinux=permissive`; this does not describe normal Android SELinux. `scripts/r0s/inspect_recovery_abi.sh` reads and prints the recovery fstab and selected init contents through `cpio --to-stdout` in a temporary directory, with no privileged mount, firmware writes, image changes or phone operations. Genuine host rerun is pending.
+
+## Native recovery fstab inspection (2026-10-12)
+
+The real GZH3 recovery ramdisk's `system/etc/recovery.fstab` was extracted and SHA256-verified in the host log: `91d60dcf617483a260600d2ea25054a56a7cad806ec6011218b044262fe2b488`. It contains raw `/boot`, `/vendor_boot`, `/dtbo`, `/recovery` paths and all five physical super logical names. It additionally lists **`system_ext`**, while the actual Samsung `lpdump` partition list does not contain it. Do not create an extra system_ext partition from a generic recovery fstab entry.
+
+The recovery fstab differs from vendor fstab in AVB policy, supported fs types and recovery-only mounts. These files cannot be interchanged as complete configuration files. The staged UN1CA `recovery.fstab` is used only by UN1CA's partition locator resolver and is **not** a native recovery filesystem policy.
+
+The read-only `scripts/r0s/check_recovery_ota_map.sh` now compares native recovery, native vendor, extracted super metadata and staged updater block locators, refusing unsupported logical names and missing raw locators while allowing extra stock recovery-only entries. Its synthetic test is wired into Actions; genuine host rerun remains pending. This is **mapping consistency only**, not proof that Samsung recovery can run UN1CA's deprecated-OTA update-binary or that normal boot works.
