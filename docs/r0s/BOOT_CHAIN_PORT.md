@@ -70,3 +70,7 @@ Primary field-format reference: https://source.android.com/docs/core/architectur
 - `recovery.img`: header v2, raw boot-header `os_version=12.0.0`, patch `2026-08`, size 100663296 bytes, SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`.
 - Native `vendor/etc/fstab.s5e9925` SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`. This is vendor first-stage fstab, not verified native recovery fstab.
 - Remaining gates: recovery ramdisk, kernel/module ABI, full ROM and physical S901B.
+
+## UN1CA ROM workdir built on real GZH3 A16 firmware (2026-10-12)
+
+The user successfully ran make_rom.sh --no-target-files. Upstream modified workdir copies of the boot chain: boot.img 36,700,176 bytes versus stock 67,108,864; vendor_boot.img 15,912,960 versus stock 33,554,432; dtbo.img 2,204,388 versus stock 8,388,608. The log shows removal of AVB/Samsung footers, vendor_boot fstab patching and a PROCA boot-kernel patch; modified images must not inherit stock image qualifications. scripts/r0s/inspect_built_workdir.sh is a read-only postbuild header, size, archive and module audit; pending host execution. No boot or board PASS claimed.

@@ -1,6 +1,6 @@
 # UN1CA `sixteen-r0s` status
 
-**STATE:** HOST_CONFIG_PASS / FIRMWARE_METADATA_PASS / BOOT_METADATA_PENDING_RERUN / ROM_UNBUILT / BOARD_DEFERRED / INSTALLER_LOCKED.
+**STATE:** HOST_CONFIG_PASS / STOCK_FIRMWARE_PASS / STOCK_BOOT_METADATA_PASS / RECOVERY_LOCATOR_PASS / ROM_WORKDIR_BUILT / MODIFIED_BOOT_UNQUALIFIED / OTA_UNBUILT / BOARD_DEFERRED / INSTALLER_LOCKED.
 
 ## Source baseline
 
@@ -120,3 +120,7 @@
 
 - Added `scripts/ci/test_r0s_ota_op_list.sh`: isolated execution of UN1CA's real dynamic op-list generator on 4096-byte synthetic images; checks exact five GZH3 logical names and pinned group capacity; negative tests flag invented separate `system_ext` and group overflow.
 - Source-level test is pending host execution; it does not create the ROM, target-files ZIP, or recovery OTA. Stock firmware and mandatory installer abort untouched.
+
+## Native GZH3 UN1CA ROM workdir host build PASS (2026-10-12)
+
+Host at pinned source 8e16a6479c8fc354490225504c4bfd66ad042088 ran make_rom.sh --no-target-files; upstream UN1CA completed workdir assembly and APK/JAR rebuild in 19min19sec with no reported build errors. Workdir 11G: system 7.1G, product 1.3G, vendor 2.1G, odm 1.2M, vendor_dlkm 15M, with embedded system_ext. Stock firmware remains separately extracted. Work kernel images modified: boot.img 36700176 bytes (stock 67108864), vendor_boot.img 15912960 (stock 33554432), dtbo.img 2204388 (stock 8388608). Upstream copied, stripped footers and patched PROCA/vendor_boot fstab in work copies. Modified images have NOT yet been revalidated for header shape, kernel ABI or runtime. No target-files or OTA ZIP generated; E3099 active. Disk free now ~41G; capacity gate required before image generation. Added read-only inspect_built_workdir.sh (host run pending).

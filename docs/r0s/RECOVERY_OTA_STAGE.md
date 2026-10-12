@@ -82,3 +82,7 @@ The read-only `scripts/r0s/check_recovery_ota_map.sh` now compares native recove
 ## Dynamic partition operation-list rehearsal (2026-10-12)
 
 The upstream `GENERATE_OP_LIST()` in `scripts/internal/build_full_ota_zip.sh` creates entries only for image files actually present. Its generic `PARTITIONS_LIST` supports `system_ext`, but GZH3 has no separate stock image for it. `scripts/ci/test_r0s_ota_op_list.sh` extracts and executes **the actual function**, with five tiny mock images and the real group size, and asserts exactly `system odm product vendor vendor_dlkm` in the operation list. Negative fixtures reject an invented `system_ext` image and oversized group data. This proves generator behavior under controlled fixtures, **not** the actual image build, updater semantics or runtime recovery. Before any actual OTA, inspect generated image list/operations from the ROM artifact and retain `E3099`.
+
+## Workdir assembly complete, OTA images not yet created (2026-10-12)
+
+Synthetic OTA operation-list tests passed. Real GZH3 UN1CA workdir assembled successfully, no separate system_ext partition, but there is no target-files ZIP, EROFS image set or actual dynamic operation list yet. Remaining free host disk ~41G. Capacity and modified boot-image postbuild checks precede further packaging. E3099 remains active.
