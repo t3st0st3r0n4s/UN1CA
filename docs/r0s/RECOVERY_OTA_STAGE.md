@@ -86,3 +86,7 @@ The upstream `GENERATE_OP_LIST()` in `scripts/internal/build_full_ota_zip.sh` cr
 ## Workdir assembly complete, OTA images not yet created (2026-10-12)
 
 Synthetic OTA operation-list tests passed. Real GZH3 UN1CA workdir assembled successfully, no separate system_ext partition, but there is no target-files ZIP, EROFS image set or actual dynamic operation list yet. Remaining free host disk ~41G. Capacity and modified boot-image postbuild checks precede further packaging. E3099 remains active.
+
+## Target-files storage and reuse constraint (2026-10-12)
+
+Real workdir audit PASS, with 41 GiB free. `make_rom.sh` computes `GET_WORK_DIR_HASH()` across `unica`, `platform/exynos2200` and `target/r0s` **including status Markdown**. Documentation edits in `target/r0s` therefore risk an unnecessary rebuild; a direct invocation of upstream `scripts/internal/create_target_files_zip.sh` on the already-built workdir is the safer later route, once storage is gated. It builds temporary EROFS partition images, an `unsparse_super_empty.img` with 11,744,051,200-byte super geometry, and a compressed target-files zip. Disk peak has not been measured; keep the 12 GB Odin and 13 GB extracted stock firmware intact until a controlled retention decision. No target-files or OTA ZIP yet.
