@@ -182,3 +182,21 @@ separately.
 and EROFS normal-boot experience remain UNTESTED. So do GZH3 kernel,
 vendor modules, AVB, radio, SELinux and Android 16 board boot.
 Keep E3099 in the actual integrated UN1CA OTA. Do NOT flash it.
+
+## Actual device reboot after abort-only probe — PASS (2026-10-13)
+
+The user confirmed that after the E3099-only real TWRP updater-launch
+test, the S901B rebooted **normally into working TachyonOS FYI3**.
+Thus the previous recovery-ABI probe is closed with device-level
+TWRP updater invocation PASS and **normal original-ROM boot PASS**.
+No kernel, super partition or Samsung bootloader write was exercised.
+The real UN1CA 6 GB package remains E3099-locked.
+
+Next focused gate: **read the already-installed FYI3 vbmeta partition
+without modifying it** and inspect its AVB flags/descriptors using
+the existing host `avbtool`. This can characterize AVB policy on
+the actual unlocked phone; it cannot prove GZH3 kernel acceptance.
+Stock GZH3 test-key signatures have already passed their host gate,
+as have exact PROCA-only kernel delta and all five stock vendor
+module identity/vermagic checks. Do not repeat them or rebuild the
+ROM. Keep FYI3 Samsung bootloader, CP and recovery untouched.
