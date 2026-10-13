@@ -89,3 +89,34 @@ reported explicitly, without inventing a new TWRP requirement.
 
 The agreed I(18) FYI3 bootloader stays untouched and the single integrated
 ROM ZIP remains E3099-locked. Do **not** flash during this stage.
+
+## Actual signed-OTA updater versus existing TWRP — host PASS (2026-10-13)
+
+The developer ran `python3 scripts/r0s/audit_ota_updater_twrp.py`
+on the Ubuntu host against the finished locked GZH3 ZIP (SHA-256
+`4200d8239a5243021cdcf7396b0bab4f0dda944f5dc4e1893ffd189c4df9e022`)
+and the pinned existing S901B TWRP TAR.
+
+Observed results:
+
+- Packaged `META-INF/com/google/android/update-binary` SHA-256:
+  `28378c9dcae8a0e6035e5f90e66c2a128eab3cce2982e43aa33424542507664a`.
+  It matched the upstream UN1CA bundled updater byte-for-byte.
+- ELF64 / AArch64; **no interpreter and no external NEEDED libraries**;
+  statically linked/self-contained. No dependency on TWRP-shipped libc.
+- Updater contains named entry-point hints
+  `update_dynamic_partitions`, `block_image_update` and `map_partition`.
+- `TWRP_OTA_LINKER_PATH_PRESENT=true` and
+  `TWRP_MISSING_DIRECT_LIB_NAMES=none`; these are vacuous dependency
+  compatibility successes for a static binary, **not** evidence of
+  successful TWRP updater invocation.
+- `E3099-FIRST CONFIRMED` before any partition-write expressions.
+  Host check did not reboot, flash, modify phone, or write BL/CP/recovery.
+
+**Disposition:** Actual embedded updater **host static-ABI PASS**.
+No updater-library blocker. Recovery execution, mapped dynamic partition
+updates and boot of GZH3 A16 on the retained FYI3 bootloader are still
+**DEVICE UNVERIFIED**; E3099 remains installed. Next avoid more parallel
+installer architectures and do not rebuild the ZIP. A bounded TWRP
+runtime qualification is the remaining updater test, and independently
+the A16 kernel/AVB/normal-boot qualification remains mandatory.
