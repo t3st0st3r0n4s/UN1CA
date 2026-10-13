@@ -49,7 +49,9 @@ def call(*args):
 
 
 def same(a, b, what):
-    if sha256(require(a)) != sha256(require(b)):
+    # A valid vendor_boot v4 may carry a zero-byte bootconfig; comparing it
+    # must not incorrectly require nonempty content.
+    if not a.is_file() or not b.is_file() or sha256(a) != sha256(b):
         hold(what + " altered")
 
 
