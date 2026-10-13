@@ -29,20 +29,11 @@ SHA256. It never extracts an image to be flashed and does not require
 TWRP sources. If their inner recovery images differ, keep the installed,
 already device-tested recovery; do NOT assume the GitHub TAR was tested.
 
-On the Ubuntu host, first fetch the UN1CA branch, then read-only:
-
-```bash
-cd ~/android/UN1CA
-git pull --ff-only origin sixteen-r0s
-python3 scripts/r0s/audit_tachyon_twrp_reuse.py --self-test
-python3 scripts/r0s/audit_tachyon_twrp_reuse.py --source-only
-python3 scripts/r0s/audit_tachyon_twrp_reuse.py \
-  --tachyon-tar ~/android/tachyonos_s901b/TWRP/S901B_twrp_vbmeta_only.tar \
-  --tested-tar ~/android/S22-ROM/S901B_twrp_logo_vbmeta.tar
-```
-
-If the actual TachyonOS checkout uses a different directory, pass that
-existing file's location; there is no need to clone or rebuild TWRP.
+The earlier TAR-comparison script is an **optional forensic audit only**.
+It is **not** a prerequisite for the kernel-only updater. The user's
+successful TachyonOS A15 kernel ZIP flash on 2026-10-10 is already
+accepted as the recovery-use evidence, and the missing local TachyonOS
+archive path is not a ROM/kernel blocker.
 
 ## Physical compatibility *already* established
 
@@ -95,12 +86,22 @@ Likewise GZH3/ExtremeKRNL boot on the FYI3 retained bootloader, AVB trust,
 module/KMI and rollback remain separate; no existing evidence grants a
 normal A16 boot PASS.
 
-Any true kernel-only installer must use the same **proven UN1CA block updater
-path**, include matching vendor_dlkm data when changing the kernel ABI,
-and preserve GZH3 vendor_boot native ramdisk00 and signed image layout.
-The current `package_extremekrnl_update_a16.py` produces only an
-E3099-locked, non-flashable development payload; it is not a second ROM
-installer. No new TWRP build is a prerequisite.
+**Kernel-only maintenance is distinct from full-ROM installation.**
+For the kernel-only case, follow the proven TachyonOS ExtremeKRNL ZIP:
+the original ExtremeKRNL update-binary plus **boot.img, vendor_boot.img,
+and dtbo.img only**. No full-ROM legacy block updater, no vendor_dlkm
+block write and no new recovery tree.
+
+The existing installed A16 vendor_dlkm modules must already match the
+replacement kernel's ABI (and relevant symbol CRCs); this is why the
+user's documented A15 upgrade needed no vendor_dlkm rewrite. If this
+condition fails for a future KSU/kernel upgrade, stop the 3-image ZIP
+path rather than silently adding a logical partition update.
+
+The UN1CA GZH3 kernel ZIP builder now implements the same five-member
+ExtremeKRNL recovery package layout, using the GZH3-reconciled signed
+boot chain and E3099 abort. The A16 on-device runtime gate remains open,
+but **A15 recovery qualification must not be repeated**.
 
 Do not flash TWRP, vbmeta, an A16 ROM, or an unqualified kernel ZIP while
 the E3099 and bootloader/rollback gates remain active.
