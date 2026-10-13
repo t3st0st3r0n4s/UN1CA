@@ -114,3 +114,35 @@ Host-only check (no packaging): `bash scripts/r0s/build_target_files_guarded.sh 
 If the preflight passes and available space is sufficient, start direct image packaging only with `bash scripts/r0s/build_target_files_guarded.sh --build`. This sources UN1CA buildenv for the existing target, reruns the disk and workdir/PROCA audits, calls upstream scripts/internal/create_target_files_zip.sh directly into a temporary output, checks the ZIP structure with `check_target_files_zip.py`, and only then moves to a non-overwriting HOST_ONLY target-files filename. It does not run make_rom.sh, build_full_ota_zip.sh or flash anything.
 
 Neither script has run against the real host as of this commit. Do not treat target-files structure or kernel patch scope as boot compatibility, AVB signature validation, recovery OTA compatibility or BOARD PASS. E3099 remains mandatory.
+
+## Native GZH3 target-files actually built on host (2026-10-13)
+
+The user ran `bash scripts/r0s/build_target_files_guarded.sh --build` against
+the existing completed S901B Android 16 workdir. Both native GZH3 capacity
+preflights, the exact-kernel/ramdisk workdir audit, image construction, and
+the target-files structure gate passed without calling `make_rom.sh`.
+All five native EROFS partitions were created (system, odm, product, vendor,
+vendor_dlkm), and `boot.img`, `dtbo.img`, `vendor_boot.img` were added.
+The native group was `group_basic`, cap `11739856896` bytes; total
+expanded logical partition sizes were `7579938816` bytes. The produced
+`unsparse_super_empty.img` was only 4644 bytes of metadata: the earlier
+full-device planning estimate was conservative, not a measured peak.
+
+Host artifact: `out/r0s_A16_GZH3_HOST_ONLY-target_files.zip`.
+Observed SHA-256:
+`6c20d013b7f3087e08fe453d5eb10fcf9411107898c98705b6f8b30347a9b8fd`.
+The packaging script reported **TARGET-FILES STRUCTURE PRECHECK PASS** and
+**HOST-ONLY TARGET-FILES CREATED**.
+
+A separate `scripts/r0s/audit_target_files_host.sh` now provides the
+next **read-only** verification stage with the expected artifact SHA as
+an argument. It checks the archive structure and installer lock, streams
+all ZIP members for CRC, verifies raw boot-chain AVB signatures against
+the *development test key*, and reads the native empty-super metadata
+using `lpdump`. This deep check still requires execution on the actual
+host and must not be reported as PASS merely because CI syntax succeeds.
+
+**No OTA was generated or tested.** Native recovery updater semantics,
+stock bootloader AVB trust and rollback, kernel/module ABI, normal-boot
+SELinux, and physical S901B boot remain UNVERIFIED. The unconditional
+`E3099` installer abort remains active. Do not flash this target-files ZIP.
