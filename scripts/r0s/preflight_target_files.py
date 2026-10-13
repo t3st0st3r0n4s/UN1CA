@@ -14,6 +14,8 @@ PARTITIONS = ("system", "odm", "product", "vendor", "vendor_dlkm")
 SUPER_BYTES = 11_744_051_200
 GROUP_BYTES = 11_739_856_896
 RESERVE_BYTES = 7 * 1024 ** 3
+# Only these build.prop values define the target identity for this gate.
+IDENTITY_PROPERTIES = frozenset(("ro.build.version.sdk", "ro.product.device", "ro.unica.device"))
 
 
 class Blocked(Exception):
@@ -25,12 +27,20 @@ def require(value, reason):
         raise Blocked(reason)
 
 
-def metadata(path):
+def metadata(path, *, allow_nonidentity_duplicates=False):
+    """Parse strict super metadata or Android build.prop.
+
+    Android build.prop can repeat non-identity properties (e.g. ro.kernel.qemu).
+    The three values determining our target identity must remain unambiguous.
+    Stock dynamic-partition metadata is always parsed strictly.
+    """
     result = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         if "=" in line:
             k, v = line.split("=", 1)
-            require(k not in result, "duplicate metadata property: " + k)
+            require(k not in result or
+                    (allow_nonidentity_duplicates and k not in IDENTITY_PROPERTIES),
+                    "duplicate metadata property: " + k)
             result[k] = v.strip()
     return result
 
@@ -86,7 +96,7 @@ def validate(root, free_bytes=None):
                 "workdir boot image missing: " + name)
     props_file = work / "system/system/build.prop"
     require(props_file.is_file(), "workdir build.prop missing")
-    props = metadata(props_file)
+    props = metadata(props_file, allow_nonidentity_duplicates=True)
     for key, value in (
         ("ro.build.version.sdk", "36"),
         ("ro.product.device", "r0s"),

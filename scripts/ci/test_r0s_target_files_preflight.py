@@ -31,7 +31,8 @@ def fixture(root):
     (work / "kernel").mkdir()
     (work / "system/system/system_ext").mkdir(parents=True)
     (work / "system/system/build.prop").write_text(
-        "ro.build.version.sdk=36\nro.product.device=r0s\nro.unica.device=r0s\n")
+        "ro.build.version.sdk=36\nro.product.device=r0s\nro.unica.device=r0s\n"
+        "ro.kernel.qemu=0\nro.kernel.qemu=0\n")
     for part in gate.PARTITIONS:
         (work / part).mkdir(exist_ok=True)
         (work / "configs" / ("file_context-" + part)).write_text("fixture\n")
@@ -83,7 +84,23 @@ def run():
         blocked()
         (tempdir / "valuable.bin").unlink()
         passed()
-    assert count == 8, count
+
+        # Non-identity duplicates in Android build.prop are permitted, but
+        # duplicated SDK/device identity fields must always be rejected.
+        props_file = work / "system/system/build.prop"
+        normal_props = props_file.read_text()
+        props_file.write_text(normal_props + "ro.product.device=r0s\n")
+        blocked()
+        props_file.write_text(normal_props)
+
+        # Native dynamic-partition metadata must remain strictly unique.
+        super_meta_file = fw / "os_partitions_metadata.txt"
+        normal_meta = super_meta_file.read_text()
+        super_meta_file.write_text(normal_meta + "super_partition_size=11744051200\n")
+        blocked()
+        super_meta_file.write_text(normal_meta)
+        passed()
+    assert count == 11, count
     print(f"r0s target-files preflight fixtures PASS ({count} cases)")
 
 
