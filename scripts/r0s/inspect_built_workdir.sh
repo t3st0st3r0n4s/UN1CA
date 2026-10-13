@@ -56,6 +56,7 @@ do
 done
 
 printf '\n===== KERNEL MODULE PROVENANCE =====\n'
+export PATH="$ROOT/out/tools/bin:$PATH"
 if [[ -f "$WORK/kernel/.r0s_extremekrnl_a16_integrated" ]]; then
     echo 'KERNEL_MODE=GZH3_EXTREMEKRNL_A16_KSU'
     python3 "$ROOT/scripts/r0s/integrate_extremekrnl_a16.py" --verify ||
