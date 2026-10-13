@@ -291,3 +291,65 @@ the exact module boot dependency and `vendor_dlkm` metadata layout,
 signed boot/AVB test-key package after storage is available, FYI3
 bootloader compatibility, normal-boot SELinux/KSU manager and recovery
 rollback. E3099 must remain in place.
+
+### KernelSU Next v3.4.1 manager autoinstall (TachyonOS parity)
+
+The real Android 16 workdir rebuild had initially integrated only the
+**built-in** KernelSU Next v3.4.1 kernel. The user reiterated the previously
+agreed TachyonOS behaviour: **automatic manager preload/install** as well,
+not a manual APK installation.
+
+The A16 `r0s` late module now calls
+`scripts/r0s/install_ksunext_manager_a16.py --apply` after it installs
+the pinned ExtremeKRNL hybrid, so **future standard ROM workdir builds**
+embed the identical v3.4.1 **spoofed 33333** official release manager:
+- Download/pin:
+  `https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v3.4.1/KernelSU_Next_v3.4.1-spoofed_33333-release.apk`
+- SHA256:
+  `f41778ee812512ae96bf53e7265114de5e0414bc5cb92397f49e1052d77da118`,
+  independently confirmed from the GitHub v3.4.1 release asset's digest.
+- Workdir `system/system/etc/unica/ksunext/manager_payload.bin`
+  (runtime `/system/etc/unica/ksunext/manager_payload.bin`).
+- `/system/etc/unica/ksunext/install_manager.sh` uses the retained
+  TachyonOS one-shot `pm install -r` success-marker logic, with
+  `/data/local/tmp/.unica_ksunext_manager_33333_installed` as its new
+  per-ROM marker. After a deliberate uninstall, no boot-time resurrection.
+- `/system/etc/init/unica_ksunext_manager.rc` declares
+  `on property:sys.boot_completed=1` and
+  `exec_background u:r:ksu:s0 root root -- /system/bin/sh /system/etc/unica/ksunext/install_manager.sh`.
+- `configs/fs_config-system` and `configs/file_context-system` include
+  explicit files and directories (UID/GID 0, `0644` files,
+  `0755` directories, `u:object_r:system_file:s0`).
+- APK is pinned by digest, downloaded into a retained host-only manager cache
+  and copied into workdir; no `.apk` binary tracked by GitHub.
+
+**Catch up an already-built UN1CA workdir without repeating the 24-minute
+ROM rebuild** (and *before* packaging), ONLY after any in-progress
+target-files packaging has finished or been safely stopped:
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+python3 scripts/r0s/install_ksunext_manager_a16.py --check
+python3 scripts/r0s/install_ksunext_manager_a16.py --apply-existing
+python3 scripts/r0s/install_ksunext_manager_a16.py --verify
+bash scripts/r0s/build_target_files_guarded.sh --check
+```
+
+`--apply-existing` requires the completed workdir, the exact current
+custom-kernel provenance PASS, E3099 and an empty builder temporary
+directory. It preserves the prior `.completed` marker (so a later normal
+ROM build correctly sees source changes), modifies **only** the system
+manager payload/script/init and system metadata, does not regenerate
+all APK/JARs, compile kernel, touch /data/device or package OTA.
+The target-files guarded builder now *requires* manager `--verify`
+before producing a new custom kernel archive.
+
+If an archive was packaged **before** this manager integration, its bytes
+**do not include** the manager, and its old package hash / target-files
+verification cannot establish auto-install. Do not present it as A16
+manager-integrated; the archive must be rebuilt after workdir promotion.
+
+The GitHub one-shot mechanism mirrors the proven Android 15 delivery,
+but its `u:r:ksu:s0` execution, actual package-manager success and
+root-manager runtime remain **A16 BOARD DEFERRED**. E3099 active.
