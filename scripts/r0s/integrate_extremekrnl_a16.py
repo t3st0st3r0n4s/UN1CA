@@ -198,6 +198,36 @@ def apply():
     print("No OTA or device operation. E3099 remains active.")
 
 
+def verify_integrated():
+    # Read-only validation for the final patched workdir and target-files gates.
+    need(MARK.is_file(), "custom integration marker missing")
+    marker = MARK.read_text().splitlines()
+    for entry in ("source=" + KPIN, "ksu=" + SPIN,
+                  "mode=GZH3_EARLY_MOUNT_PLUS_EXTREMEKRNL_5.10.269",
+                  "host_only=true", "board_pass=false"):
+        need(entry in marker, "integration marker incomplete: " + entry)
+    need((FW / ".extracted").is_file() and
+         (FW / ".extracted").read_text().strip() == FOTA,
+         "GZH3 firmware missing")
+    lock = (ROOT / "target/r0s/installer/assertions.edify").read_text()
+    need('abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
+         in lock, "E3099 removed")
+    for name, expected in IMAGES.items():
+        need(digest(WORK / "kernel" / name) == expected,
+             "workdir custom boot chain differs: " + name)
+        need(digest(CAND / name) == expected, "candidate drift: " + name)
+    for name, expected in MODULES.items():
+        need(digest(WORK / "vendor_dlkm/lib/modules" / name) == expected,
+             "workdir custom module differs: " + name)
+        need(digest(CAND / "vendor_dlkm/lib/modules" / name) == expected,
+             "candidate module drift: " + name)
+    for tool in ("unpack_bootimg", "lz4", "cpio"):
+        need(shutil.which(tool), "missing validation host tool " + tool)
+    ramdisk_gate()
+    print("A16 EXTREMEKRNL R0S INTEGRATED WORKDIR VERIFY PASS — HOST ONLY")
+    print("Kernel/KSU candidate exact hashes confirmed; E3099 ACTIVE")
+
+
 def fixture():
     need(set(CAP) == set(IMAGES), "image list mismatch")
     need(len(MODULES) == 5, "required vendor_dlkm list incomplete")
@@ -215,8 +245,10 @@ def main():
         dryrun()
     elif sys.argv[1:] == ["--apply"]:
         apply()
+    elif sys.argv[1:] == ["--verify"]:
+        verify_integrated()
     else:
-        raise Hold("usage: integrate_extremekrnl_a16.py [--check|--apply|--self-test]")
+        raise Hold("usage: integrate_extremekrnl_a16.py [--check|--apply|--verify|--self-test]")
 
 
 if __name__ == "__main__":
