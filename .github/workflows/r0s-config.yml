@@ -24,6 +24,9 @@ on:
       - 'scripts/r0s/build_extremekrnl_a16.sh'
       - 'scripts/r0s/audit_extremekrnl_a16_candidate.sh'
       - 'scripts/r0s/compare_extremekrnl_gzh3_a16.py'
+      - 'scripts/r0s/reconcile_extremekrnl_gzh3_a16.py'
+      - 'scripts/r0s/integrate_extremekrnl_a16.py'
+      - 'scripts/make_rom.sh'
       - 'docs/r0s/CUSTOM_KERNEL_KSU_A16.md'
       - 'scripts/r0s/make_twrp_abort_probe.py'
       - 'scripts/r0s/check_tachyon_rollback_zip.py'
@@ -91,6 +94,9 @@ jobs:
       - name: Test native GZH3 vs ExtremeKRNL vendor_boot comparison (synthetic only)
         shell: bash
         run: python3 scripts/r0s/compare_extremekrnl_gzh3_a16.py --self-test
+      - name: Check pinned A16 hybrid builder and late integration fixtures (synthetic only)
+        shell: bash
+        run: python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test && python3 scripts/r0s/integrate_extremekrnl_a16.py --self-test && bash -n scripts/make_rom.sh && bash -n target/r0s/late_patches/extremekrnl/customize.sh
       - name: Test host-only single full OTA archive safety gate (synthetic only)
         shell: bash
         run: python3 scripts/r0s/build_full_ota_guarded.py --self-test
