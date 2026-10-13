@@ -242,3 +242,52 @@ the integration script. The existing E3099 installer lock remains.
 firmware and retained FYI3 bootloader I, normal-boot SELinux,
 `vendor_dlkm` metadata compatibility and actual module loading,
 AVB/bootloader trust, KSU manager runtime, recovery/rollback, physical BOARD.
+
+### Real integrated UN1CA A16 workdir HOST PASS — 13 October 2026
+
+User completed `source ./buildenv.sh r0s` followed by
+`bash scripts/make_rom.sh --no-target-files` and subsequent
+`integrate_extremekrnl_a16.py --verify`,
+`inspect_built_workdir.sh` and
+`inspect_postbuild_boot_ramdisks.sh` audits, all **PASS**.
+The build completed without producing target-files, OTA or flashing.
+
+- Android API 36, device `r0s`, native embedded `system_ext`;
+  UN1CA version `3.2.1-aa6c8661`.
+- The late module executed after upstream filesystem/PROCA patches,
+  with `A16 EXTREMEKRNL R0S WORKDIR LATE-INTEGRATION PASS`.
+- Integrated `boot.img`: 29,704,192 bytes,
+  SHA256 `55d86a13ae72768023961c8f05ed3eec0f3b4486da3e7a081b848b1e89355ad3`.
+- Integrated `vendor_boot.img`: 24,961,024 bytes,
+  SHA256 `5901c98df36a8c11204a7e0e579f2824e24c133640e15b0b605de076901101c0`.
+- Integrated `dtbo.img`: 2,206,476 bytes,
+  SHA256 `18a0c5572edcbf6a83bb55a407e956f78c34306e76b97fb9747a988b09c507df`.
+- All five `vendor_dlkm` custom module hashes exactly matched the
+  pinned hybrid. The four key APK/JAR CRCs passed.
+- Native GZH3 `vendor_boot` commandline remains
+  `androidboot.selinux=permissive bootconfig loop.max_part=7`.
+  This **is not** an enforcing-SELinux runtime claim.
+- E3099 remained active and no device or bootloader was altered.
+
+**Packaging is NOT yet run.** Host reported `df -h` available **25G**
+and workdir size around **11G**. The guarded target-files preflight
+`scripts/r0s/preflight_target_files.py` requires a conservative
+free-space budget of full-sized `super_empty` + 2× actual partition
+worktree bytes + 7 GiB reserve (approximately **39 GiB** given rounded
+workdir totals). The exact requirement must be printed by the script;
+do not override its storage check or delete firmware, rollback artifacts,
+kernel source, or workdir automatically. Run a read-only capacity
+inventory before scheduling packaging:
+
+```bash
+cd ~/android/UN1CA
+python3 scripts/r0s/preflight_target_files.py
+du -h --max-depth=2 out | sort -h | tail -35
+df -h .
+```
+
+Next technical check before claiming target-files/BOARD success:
+the exact module boot dependency and `vendor_dlkm` metadata layout,
+signed boot/AVB test-key package after storage is available, FYI3
+bootloader compatibility, normal-boot SELinux/KSU manager and recovery
+rollback. E3099 must remain in place.
