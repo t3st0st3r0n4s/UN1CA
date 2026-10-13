@@ -160,6 +160,15 @@ if $BUILD_ROM; then
         LOG_STEP_OUT
     fi
 
+    # Device-specific final overrides. These must run AFTER shared ROM
+    # filesystem/PROCA patches so custom GZH3 kernel ramdisks are not rewritten.
+    # Only targets providing late_patches participate; other builds unchanged.
+    if [ -d "$SRC_DIR/target/$TARGET_CODENAME/late_patches" ]; then
+        LOG_STEP_IN true "Applying device late patches"
+        "$SRC_DIR/scripts/internal/apply_modules.sh" "$SRC_DIR/target/$TARGET_CODENAME/late_patches" || exit 1
+        LOG_STEP_OUT
+    fi
+
     BUILD_APKS
 
     echo -n "$(GET_WORK_DIR_HASH)" > "$WORK_DIR/.completed"
