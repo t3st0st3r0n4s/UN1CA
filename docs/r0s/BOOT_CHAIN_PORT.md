@@ -189,3 +189,45 @@ ROM: matched logical partitions/boot chain, relevant vbmeta and the working
 TWRP, with saved backups. Data may need format/restore; **reversible ROM
 firmware is not the same as guaranteed preservation of Android userdata**.
 E3099 remains until the future A16 install and A15 return path are proven.
+
+## Original TWRP-provided vbmeta flags — host evidence (2026-10-13)
+
+The user directly examined the existing
+`~/android/S22-ROM/S901B_twrp_logo_vbmeta.tar`, which contains
+`recovery.img`, `up_param.bin` and `vbmeta.img` (10,576 bytes).
+The `avbtool info_image` output for that archive's `vbmeta.img`:
+
+- Algorithm: `SHA256_RSA4096`; rollback index `0`;
+  rollback index location `0`.
+- **Flags `3`**: AVB `HASHTREE_DISABLED=1` and
+  `VERIFICATION_DISABLED=2`; standard libavb disables hashtree
+  enforcement and descriptor verification for a top-level vbmeta
+  bearing these flags. This is evidence of a development-mode
+  patched AVB configuration, not a blanket Samsung boot trust bypass.
+- Chained descriptors for recovery, dtbo, prism and optics; hash
+  descriptors for boot, **bootloader**, fld, harx, keystorage, ldfw,
+  tzsw, vendor_boot; hashtree descriptors for five logical partitions.
+  These are **verification metadata only**. The bootloader descriptor
+  does not write or upgrade Samsung BL.
+- The existing package's declared OS/security-patch descriptors are
+  mostly 2023 era. Their values are not evidence of the present
+  TachyonOS FYI3 image hashes; flags 3 explain why stale hashes can
+  be tolerated by standard libavb on an unlocked device.
+
+This is the **original TWRP archive**, not an independently checked
+readback of today's `/dev/block/by-name/vbmeta`. The project previously
+installed the TWRP package and has not intentionally replaced vbmeta,
+so reuse it as the expected baseline, but do not assert byte-for-byte
+live identity without evidence.
+
+**AVB design direction:** retain the existing patched vbmeta; the
+UN1CA full ZIP intentionally omits vbmeta and all BL/CP/recovery
+partitions. Do not flash or replace any of them just to adopt A16.
+AOSP's vbmeta flags do **not** prove Samsung secure-boot TrustZone /
+antirollback compatibility or that GZH3 normal boot works with the
+existing FYI3 bootloader. The finished E3099-locked A16 package
+has development-key AVB footers verified on host; that does not
+establish device boot acceptance.
+
+Source for exact flag bit meanings:
+https://android.googlesource.com/platform/external/avb/+/master/libavb/avb_vbmeta_image.h
