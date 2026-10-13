@@ -192,11 +192,11 @@ def run_convert(img, scratch):
     return out
 
 
-def manifest_payload(archive, z, expected_sha):
+def manifest_payload(blobs, expected_sha):
     recs = {}
     for name in (sorted(PAYLOADS) + [BINARY]):
-        recs[name] = {"size": z.getinfo(name).file_size,
-                      "sha256": zip_hash(z, name)}
+        recs[name] = {"size": blobs[name].stat().st_size,
+                      "sha256": sha(blobs[name])}
     return {
         "status": "HOST_ONLY_E3099_LOCKED",
         "device": "SM-S901B", "codename": "r0s", "android_api": 36,
@@ -233,8 +233,10 @@ def archive_verify(path, source_sha=None):
         # Ignore comments by testing the exact source recipe and its ordering.
         need(indices and code.find(E3099) < min(indices),
              "E3099 not before partition operations")
-        need("remove_all_groups" not in code.splitlines()[4:] and
-             "update_dynamic_partitions(" not in code.splitlines()[4:],
+        active = [line for line in code.splitlines()
+                  if not line.lstrip().startswith("#")]
+        need(not any("remove_all_groups" in line or
+                     "update_dynamic_partitions(" in line for line in active),
              "kernel-only updater must not alter installed super group")
         need(code.count('block_image_update(map_partition("vendor_dlkm")') == 1,
              "vendor_dlkm not updated exactly once")
@@ -291,11 +293,11 @@ def archive_build(expected_sha):
                 z.write(source, name, compress_type=zipfile.ZIP_STORED)
             z.writestr(UPDATER, SCRIPT)
             z.writestr(NOTICE, README)
-            m = manifest_payload(staging, z, expected_sha)
+            m = manifest_payload(blobs, expected_sha)
             z.writestr(MANIFEST, json.dumps(m, sort_keys=True, indent=2) + "\n")
         archive_verify(staging, expected_sha)
         need(not OUTPUT.exists(), "output appeared during assembly")
-        shutil.copyfile(staging, OUTPUT)
+        staging.replace(OUTPUT)
     print("A16 KERNEL-ONLY TWRP UPDATER HOST PACKAGE PASS")
     print("output: " + str(OUTPUT))
     print("SHA256: " + sha(OUTPUT))
