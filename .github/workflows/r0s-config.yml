@@ -16,6 +16,7 @@ on:
       - 'scripts/r0s/inspect_boot_chain.sh'
       - 'scripts/r0s/inspect_recovery_abi.sh'
       - 'scripts/r0s/audit_stock_recovery_updater.sh'
+      - 'scripts/r0s/audit_recovery_candidates.sh'
       - 'scripts/r0s/audit_recovery_ota_trust.sh'
       - 'scripts/r0s/check_recovery_ota_certificates.py'
       - 'scripts/ci/test_r0s_recovery_ota_certificates.py'
@@ -61,7 +62,7 @@ jobs:
         run: bash scripts/ci/test_r0s_boot_chain.sh
       - name: Syntax-check the read-only native recovery inspector
         shell: bash
-        run: bash -n scripts/r0s/inspect_recovery_abi.sh && bash -n scripts/r0s/audit_stock_recovery_updater.sh && bash -n scripts/r0s/audit_recovery_ota_trust.sh
+        run: bash -n scripts/r0s/inspect_recovery_abi.sh && bash -n scripts/r0s/audit_stock_recovery_updater.sh && bash -n scripts/r0s/audit_recovery_ota_trust.sh && bash -n scripts/r0s/audit_recovery_candidates.sh
       - name: Test X.509 OTA recovery trust comparator (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_recovery_ota_certificates.py

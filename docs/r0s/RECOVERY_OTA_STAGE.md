@@ -267,3 +267,29 @@ bootloader/GPT/rollback constraints, kernel-module ABI/loadability, normal
 SELinux behavior, and a controlled on-device recovery validation plan.
 Keep the completed HOST_ONLY target-files ZIP and stock extracted firmware
 unchanged. Installer `E3099` remains active.
+
+## Local S901B recovery candidates located (2026-10-13)
+
+The user's read-only inventory found the pinned GZH3 stock recovery image
+(`out/fw/SM-S901B_EUX/kernel/recovery.img`, 100663296 bytes),
+a GZH3-derived workdir recovery
+(`out/target/r0s/work_dir/kernel/recovery.img`, 74764304 bytes),
+and a prior TWRP archive `S901B_twrp_logo_vbmeta.tar` (70112768 bytes),
+present in both `~/android/S22-ROM` and `~/Downloads`.
+Unrelated Orange Pi RK recovery artifacts were excluded.
+
+Source review of `scripts/internal/create_work_dir.sh` demonstrates that
+the workdir kernel directory is copied from the selected target stock firmware;
+`scripts/unsign_bin.sh` then strips AVB/Samsung signing as applicable.
+This workdir recovery is stock-derived, **not an Android 16 custom recovery**.
+Its kernel/ramdisk equivalence remains subject to a byte-for-byte host audit.
+`scripts/internal/create_target_files_zip.sh` does **not** include
+`recovery.img`; it includes boot, dtbo and vendor_boot.
+
+New `scripts/r0s/audit_recovery_candidates.sh` is a read-only comparison:
+it lists TAR entries, streams exactly one recovery.img member to a temp
+directory, inspects stock/workdir/TWRP Android boot headers and embedded
+kernel/ramdisk hashes, enforces stock/workdir payload equivalence, compares
+candidate TWRP kernel against native GZH3 and inventories recovery fstabs.
+Synthetic CI runs syntax only; **real host candidate audit pending**.
+No candidate is authorised for GZH3 flashing, and `E3099` remains active.
