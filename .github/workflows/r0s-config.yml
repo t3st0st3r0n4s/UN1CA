@@ -23,6 +23,9 @@ on:
       - 'scripts/r0s/check_proca_kernel_delta.py'
       - 'scripts/ci/test_r0s_proca_kernel_delta.py'
       - 'scripts/r0s/check_target_files_zip.py'
+      - 'scripts/r0s/preflight_target_files.py'
+      - 'scripts/r0s/build_target_files_guarded.sh'
+      - 'scripts/ci/test_r0s_target_files_preflight.py'
       - 'scripts/ci/test_r0s_target_files_zip.py'
       - 'scripts/r0s/check_unpacked_boot_header.sh'
       - 'scripts/ci/test_r0s_boot_header_labels.sh'
@@ -71,6 +74,9 @@ jobs:
       - name: Test exact native A16 kernel PROCA delta (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_proca_kernel_delta.py
+      - name: Test guarded target-files capacity and firmware preflight (synthetic only)
+        shell: bash
+        run: python3 scripts/ci/test_r0s_target_files_preflight.py && bash -n scripts/r0s/build_target_files_guarded.sh
       - name: Test native GZH3 target-files ZIP checker (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_target_files_zip.py

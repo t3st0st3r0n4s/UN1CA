@@ -102,3 +102,15 @@ When an actual target-files ZIP exists, run:
 `python3 scripts/r0s/check_target_files_zip.py /path/to/r0s_VERSION-target_files.zip`
 
 **Do not generate or flash OTA merely because the ZIP structure passes**. Actual image construction, storage peak, modified kernel/ramdisk review, recovery updater semantics and physical board validation remain separate gates.
+
+## Guarded direct target-files packaging (2026-10-13)
+
+Real GZH3 PROCA exact-delta audit passed: only the expected 4-byte ARM64 header and one same-length PROCA string substitution occur in the rebuilt decompressed kernel. The vendor_boot cmdline matches stock; vendor_ramdisk01 is byte-identical; matched vendor_ramdisk00 fstab differences are the native five-partition EROFS conversion. Kernel ABI and BOARD remain deferred.
+
+Use `scripts/r0s/build_target_files_guarded.sh` rather than make_rom.sh to prevent the existing 11GB completed workdir from being rebuilt merely because the source/docs hash changed. `--check` (default) is read-only: it confirms pinned GZH3 extraction, API 36 and r0s workdir identity, expected five physical super partitions, metadata, E3099 and an unobstructed builder temporary directory. The capacity planning budget allows an unsparse 11.74GB super-empty file, twice the workdir partition-tree disk usage for image and ZIP staging, plus 7GiB free reserve. **This is an estimate, not a measured or guaranteed peak**.
+
+Host-only check (no packaging): `bash scripts/r0s/build_target_files_guarded.sh --check`
+
+If the preflight passes and available space is sufficient, start direct image packaging only with `bash scripts/r0s/build_target_files_guarded.sh --build`. This sources UN1CA buildenv for the existing target, reruns the disk and workdir/PROCA audits, calls upstream scripts/internal/create_target_files_zip.sh directly into a temporary output, checks the ZIP structure with `check_target_files_zip.py`, and only then moves to a non-overwriting HOST_ONLY target-files filename. It does not run make_rom.sh, build_full_ota_zip.sh or flash anything.
+
+Neither script has run against the real host as of this commit. Do not treat target-files structure or kernel patch scope as boot compatibility, AVB signature validation, recovery OTA compatibility or BOARD PASS. E3099 remains mandatory.
