@@ -13,6 +13,14 @@ if [[ $# -gt 1 || "$MODE" != "--check" && "$MODE" != "--build" ]]; then
 fi
 echo '===== NATIVE A16 TARGET-FILES PREFLIGHT ====='
 python3 "$ROOT/scripts/r0s/preflight_target_files.py" || exit 2
+# The r0s hybrid ROM now promises the same KSU manager auto-install
+# as TachyonOS. Refuse to package a pre-promotion workdir by accident.
+if [[ -f "$ROOT/out/target/r0s/work_dir/kernel/.r0s_extremekrnl_a16_integrated" ]]; then
+    python3 "$ROOT/scripts/r0s/install_ksunext_manager_a16.py" --verify || {
+        echo 'BLOCKED: manager preload absent. Apply --apply-existing to the completed workdir before packaging.' >&2
+        exit 2
+    }
+fi
 if [[ "$MODE" == "--check" ]]; then
     echo 'CHECK ONLY — no workdir rebuild, target-files or flashable OTA'
     exit 0
