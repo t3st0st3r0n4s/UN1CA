@@ -147,3 +147,41 @@ kernel/module dependency ABI and module load ordering, the original FYI3
 binary-I bootloader, AVB, complete A16 ROM and SELinux runtime, and
 rollback and physical BOARD tests. KernelSU manager reuse remains staged
 and inactive. `E3099` stays mandatory.
+
+### Actual GZH3-vs-ExtremeKRNL hold — host 2026-10-13
+
+The real `compare_extremekrnl_gzh3_a16.py` run proved both vendor_boot
+images have two valid ramdisk fragments. Five custom `.ko` files embedded
+in custom `vendor_ramdisk01` are byte-identical to their compiled
+artifacts; `modules.load` has 328 entries and **0 missing filenames**.
+
+The candidate **cannot be copied directly** into UN1CA: its
+`first_stage_ramdisk/fstab.s5e9925` requests `f2fs` for native
+GZH3/UN1CA `erofs` vendor, vendor_dlkm, product and odm. All three fstabs
+differ, including `/data` encryption and AVB handling. The comparison
+appropriately returned `REQUIRES RECONCILIATION`. This is not a failed
+kernel compile or unresolved module inventory.
+
+**Implementation added:** `scripts/r0s/reconcile_extremekrnl_gzh3_a16.py`
+builds an *isolated* host-only hybrid candidate, preserving the native
+GZH3 workdir `boot` ramdisk and metadata, native vendor ramdisk00
+(including the three exact fstabs), native vendor bootconfig and metadata,
+while substituting the pinned ExtremeKRNL built kernel/DTB, custom
+vendor_ramdisk01, custom dtbo and five matching vendor_dlkm modules.
+The builder unpacks the results and asserts the exact component hashes
+before writing a separate folder under `out/`. No prior output is
+overwritten, no existing ROM workdir is patched, and E3099 is not removed.
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test
+PATH="$PWD/out/tools/bin:$PATH" \
+  python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py
+```
+
+The host builder result is **PENDING** until it runs against real
+boot metadata. Additional work remains for vendor_dlkm metadata packaging,
+ROM patch module activation, AVB/signed target-files, actual runtime KSU,
+firmware compatibility, FYI3 bootloader, and device validation. Do not
+flash these candidate images.
