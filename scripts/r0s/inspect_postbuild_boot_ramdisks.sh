@@ -10,6 +10,15 @@ WORK="${2:-$ROOT/out/target/r0s/work_dir}"
 die() { printf 'r0s POSTBUILD BOOT REVIEW BLOCKED: %s\n' "$*" >&2; exit 2; }
 [[ -s "$FW/.extracted" && -s "$WORK/.completed" ]] ||
     die 'missing stock extraction or completed workdir'
+# The stock mode proves an exact PROCA-only byte delta; a custom kernel
+# cannot meet that invariant. It has its own pinned hybrid provenance gate.
+if [[ -f "$WORK/kernel/.r0s_extremekrnl_a16_integrated" ]]; then
+    export PATH="$ROOT/out/tools/bin:$PATH"
+    python3 "$ROOT/scripts/r0s/integrate_extremekrnl_a16.py" --verify ||
+        die 'pinned A16 custom kernel boot/ramdisk provenance failed'
+    echo 'CUSTOM A16 BOOT/FSTAB HOST PROVENANCE PASS — no stock PROCA-delta claim'
+    exit 0
+fi
 [[ "$(cat "$FW/.extracted")" == "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3" ]] ||
     die 'wrong source firmware'
 export PATH="$ROOT/out/tools/bin:$PATH"
