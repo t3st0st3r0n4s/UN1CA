@@ -92,7 +92,10 @@ def audit(tarpath):
                       assert_file.read_text(), re.M), "E3099 lock missing")
     require(tarpath.is_file() and sha256(tarpath) == EXPECTED_TAR,
             "candidate TAR changed from vetted inventory")
-    for tool in ("unpack_bootimg", "cpio", "readelf", "file", "strings"):
+    bundled = ROOT / "out/tools/bin/unpack_bootimg"
+    host_unpack = str(bundled) if bundled.is_file() else shutil.which("unpack_bootimg")
+    require(host_unpack is not None, "host tool missing: unpack_bootimg")
+    for tool in ("cpio", "readelf", "file", "strings"):
         require(shutil.which(tool) is not None, "host tool missing: " + tool)
     with tempfile.TemporaryDirectory() as dirname:
         temp = Path(dirname)
@@ -108,9 +111,7 @@ def audit(tarpath):
                 shutil.copyfileobj(input_file, dst)
         unpack = temp / "out"
         unpack.mkdir()
-        envtool = str(ROOT / "out/tools/bin/unpack_bootimg")
-        tool = envtool if Path(envtool).is_file() else shutil.which("unpack_bootimg")
-        result = run_command([tool, "--boot_img", str(image), "--out", str(unpack)])
+        result = run_command([host_unpack, "--boot_img", str(image), "--out", str(unpack)])
         require(result.returncode == 0, "TWRP boot header unpack failed")
         ramdisk = unpack / "ramdisk"
         require(ramdisk.is_file(), "TWRP ramdisk not found")
