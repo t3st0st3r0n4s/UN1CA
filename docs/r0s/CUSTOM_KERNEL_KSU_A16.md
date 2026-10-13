@@ -431,3 +431,34 @@ The three-image package is intentionally NOT flashable:
 E3099 aborts before all writes. A16 bootloader/AVB, normal boot,
 runtime SELinux, and kernel-update-on-installed-A16 remain
 **BOARD DEFERRED**; successful A15 TWRP flashing is not A16 proof.
+
+### Normal ExtremeKRNL ZIP packaging (current)
+
+The early `_E3099_LOCKED` kernel package was a non-installing
+development artifact and remains untouched. The kernel-only package
+builder now copies the exact upstream ExtremeKRNL `update-binary`
+and `updater-script` **without injecting E3099**, substituting only
+the three reconciled, AVB-signed A16 `boot.img`, `vendor_boot.img`,
+and `dtbo.img` images from the already built target-files archive.
+It still writes **no** `vendor_dlkm` payload.
+
+The resulting ZIP uses the actual existing ExtremeKRNL compiler's
+filename, `ExtremeKRNL-v2.5_r0s_KSU_<DD-MM-YYYY_HH-MM-SS>.zip`;
+the output is placed under UN1CA's `out/` while the original kernel
+compiler ZIP stays under `out/kernel_tmp-exynos2200/build/out/r0s/`.
+This is a kernel update for a **matching installed UN1CA A16** ROM,
+not a substitute for the full A15-to-A16 ROM installation.
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
+python3 scripts/r0s/package_extremekrnl_update_a16.py build \
+  4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a
+python3 scripts/r0s/package_extremekrnl_update_a16.py verify
+```
+
+The ZIP's absence of a development abort does not establish FYI3
+bootloader compatibility or physical A16 module-load success. No
+bootloader/CP/recovery/vbmeta images are added.
+

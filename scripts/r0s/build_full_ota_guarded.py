@@ -12,6 +12,7 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
+from datetime import datetime
 import re
 import shutil
 import subprocess
@@ -22,7 +23,6 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 INPUT = ROOT / "out/r0s_A16_GZH3_HOST_ONLY-target_files.zip"
 OUTPUT = ROOT / "out/UN1CA_r0s_A16_GZH3_E3099_BLOCKED_full_ota.zip"
-INSTALLABLE_OUTPUT = ROOT / "out/UN1CA_r0s_A16_GZH3_INSTALLABLE_UNQUALIFIED.zip"
 PIN_SHA256 = "4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a"
 LOCK = ROOT / "target/r0s/installer/assertions.edify"
 LOGICAL = ("system", "vendor", "product", "odm", "vendor_dlkm")
@@ -51,6 +51,31 @@ def digest(path):
 def locked():
     require(LOCK.is_file() and E3099 in LOCK.read_text(),
             "source installer E3099 safety lock missing")
+
+
+def native_rom_output():
+    """Use upstream UN1CA_<version>_<date>_<device>[-sign].zip convention."""
+    require(INPUT.is_file(), "existing target-files archive missing")
+    with zipfile.ZipFile(INPUT) as z:
+        info = z.read("build_info.txt").decode("utf-8")
+    fields = dict(line.split("=", 1) for line in info.splitlines() if "=" in line)
+    version = fields.get("version", "")
+    device = fields.get("device", "")
+    timestamp = fields.get("timestamp", "")
+    require(version and device == "r0s" and timestamp.isdigit(),
+            "invalid target-files metadata for normal UN1CA filename")
+    require(re.fullmatch(r"[A-Za-z0-9._-]+", version),
+            "unsafe version in build metadata")
+    day = datetime.fromtimestamp(int(timestamp)).strftime("%Y%m%d")
+    # Match scripts/build_flashable_zip.sh: add -sign when the builder signs.
+    probe = subprocess.run(
+        ["bash", "-c", 'source ./buildenv.sh r0s >/dev/null; '
+         'if ! $DEBUG || $ROM_IS_OFFICIAL; then printf "%s" "-sign"; fi'],
+        cwd=ROOT, capture_output=True, text=True)
+    require(probe.returncode == 0 and probe.stdout in ("", "-sign"),
+            "cannot determine native UN1CA signing suffix")
+    return ROOT / "out" / ("UN1CA_" + version + "_" + day + "_" +
+                           device + probe.stdout + ".zip")
 
 
 def check_ota(zpath, *, installable=False):
@@ -230,7 +255,7 @@ def main():
         if args.self_test:
             self_test()
             return 0
-        output = INSTALLABLE_OUTPUT if args.installable else OUTPUT
+        output = native_rom_output() if args.installable else OUTPUT
         if args.verify:
             require(output.is_file(), "selected OTA output is missing")
             check_ota(output, installable=args.installable)

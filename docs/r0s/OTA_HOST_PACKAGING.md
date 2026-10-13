@@ -1,6 +1,6 @@
 # UN1CA r0s GZH3: single ZIP host packaging
 
-## Installation-candidate packaging — 13 October 2026
+## Standard UN1CA ROM packaging — 13 October 2026
 
 The **current** retained target-files ZIP is
 `out/r0s_A16_GZH3_HOST_ONLY-target_files.zip`, SHA256
@@ -28,7 +28,11 @@ python3 scripts/r0s/build_full_ota_guarded.py --installable --build
 python3 scripts/r0s/build_full_ota_guarded.py --installable --verify
 ```
 
-Intended output: `out/UN1CA_r0s_A16_GZH3_INSTALLABLE_UNQUALIFIED.zip`.
+The new output uses UN1CA's **original** convention:
+`UN1CA_<version>_<YYYYMMDD>_r0s[-sign].zip`, deriving the
+version, date and device from retained target-files build metadata and
+the optional `-sign` suffix from UN1CA's signing configuration.
+No stage labels are added to the normal ZIP filename.
 Commands do not touch the phone; they require substantial free disk.
 The built ZIP is **not safe to flash merely because E3099 is absent**:
 GZH3/ExtremeKRNL boot on the retained unlocked FYI3 binary-I bootloader,

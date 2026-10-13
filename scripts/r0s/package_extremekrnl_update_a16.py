@@ -10,8 +10,8 @@ a first A15->A16 ROM installation.
 The official ExtremeKRNL update-binary Git blob 0a6085... is identical at
 A15 ExtremeXT/9ac30b43 and A16 milxnaq/78f891e1. Reuse that local binary
 and source updater-script, changing only the *three images* to the signed,
-reconciled GZH3 UN1CA target-files versions and prefixing an E3099 abort.
-A16 TWRP kernel-only flashing is NOT qualified; no device is accessed.
+reconciled GZH3 UN1CA target-files versions. The updater-script is reused
+unchanged, as in the working TachyonOS A15 kernel ZIP. No device is accessed.
 """
 from __future__ import annotations
 
@@ -28,8 +28,6 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "out/r0s_A16_GZH3_HOST_ONLY-target_files.zip"
-OUTPUT = ROOT / "out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_TWRP_E3099_LOCKED.zip"
-REPORT = OUTPUT.with_suffix(".provenance.json")
 KERNEL = ROOT / "out/kernel_tmp-exynos2200"
 WORK = ROOT / "out/target/r0s/work_dir"
 UPDATE_BINARY = KERNEL / "build/update-binary"
@@ -38,8 +36,6 @@ KERNEL_PIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
 KSU_PIN = "8f902aeb16033024143ae36cf711df902cf02fae"
 A15_A16_UPDATER_GIT_BLOB = "0a6085a9251b664ed0b591d8457ca2c01afaaa8e"
 A16_SCRIPT_GIT_BLOB = "3973dff6043769d063b792c78739c5236a8e808a"
-ABORT = ('abort("E3099: UN1CA sixteen-r0s is under development and '
-         'NOT qualified for flashing.");')
 BOOTS = ("boot", "vendor_boot", "dtbo")
 MODULES = ("fingerprint.ko", "fingerprint_sysfs.ko", "input_booster_lkm.ko",
            "sec_debug_coredump.ko", "wlan.ko")
@@ -81,6 +77,18 @@ def blob(path):
     return h.hexdigest()
 
 
+def output_path():
+    # Use the existing native ExtremeKRNL build name, without stage labels.
+    directory = KERNEL / "build/out/r0s"
+    matches = sorted(directory.glob("ExtremeKRNL-v2.5_r0s_KSU_*.zip"))
+    need(len(matches) == 1, "need exactly one upstream A16 ExtremeKRNL KSU ZIP")
+    name = matches[0].name
+    need(re.fullmatch(
+        r"ExtremeKRNL-v2\.5_r0s_KSU_\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2}\.zip",
+        name) is not None, "unexpected upstream ExtremeKRNL ZIP name")
+    return ROOT / "out" / name
+
+
 def source_script():
     need(blob(UPDATER_SOURCE) == A16_SCRIPT_GIT_BLOB,
          "A16 upstream recovery updater-script changed")
@@ -98,8 +106,8 @@ def source_script():
                   "update_dynamic_partitions(" in line or
                   "remove_all_groups" in line) for line in lines),
          "upstream kernel ZIP attempts dynamic-partition operations")
-    need(ABORT not in text, "unexpected pre-existing installer abort")
-    return (ABORT + "\n" + text).encode()
+    need("E3099" not in text, "upstream script has unexpected development abort")
+    return text.encode()
 
 
 def check(expected):
@@ -107,8 +115,6 @@ def check(expected):
          "specify SHA256 for the existing GZH3 target-files archive")
     need(SOURCE.is_file() and digest(SOURCE) == expected,
          "target-files archive SHA256 mismatch")
-    need(ABORT in (ROOT / "target/r0s/installer/assertions.edify").read_text(),
-         "mandatory E3099 lock missing")
     need((WORK / "kernel/.r0s_extremekrnl_a16_integrated").is_file(),
          "signed A16 workdir does not have reconciled custom kernel")
     need((ROOT / "out/fw/SM-S901B_EUX/.extracted").read_text().strip() == FIRMWARE,
@@ -134,7 +140,7 @@ def check(expected):
     print("TACHYONOS-PARITY EXTREMEKRNL A16 THREE-IMAGE SOURCE CHECK PASS")
     print("Original ExtremeKRNL updater binary (byte-identical Git blob to A15)")
     print("vendor_dlkm stays in installed ROM; NOT updated by recovery ZIP")
-    print("E3099 ACTIVE; kernel-only device update not qualified")
+    print("Kernel updater-script kept byte-identical to original ExtremeKRNL")
 
 
 def audit(expected):
@@ -159,9 +165,8 @@ def package_verify(path, expected=None):
              == A15_A16_UPDATER_GIT_BLOB,
              "kernel ZIP update-binary is not original ExtremeKRNL")
         text = z.read(SCRIPT)
-        need(text == source_script(), "unexpected updater-script or E3099 modification")
-        need(text.startswith(ABORT.encode() + b"\n"),
-             "E3099 must be the first updater statement")
+        need(text == source_script(), "updater-script differs from original ExtremeKRNL")
+        need(b"E3099" not in text, "unexpected E3099 development abort")
         need(not any("vendor_dlkm" in name for name in names),
              "kernel-only ZIP must not update vendor_dlkm")
         if expected is not None:
@@ -179,20 +184,22 @@ def package_verify(path, expected=None):
             for part in BOOTS:
                 need(z.getinfo("files/" + part + ".img").file_size == CAPS[part],
                      "kernel ZIP image exceeds/undershoots reference partition cap")
-    print("A16 EXTREMEKRNL TWRP 3-IMAGE ZIP STRUCTURE VERIFY PASS — E3099 LOCKED")
+    print("A16 EXTREMEKRNL TWRP 3-IMAGE ZIP STRUCTURE VERIFY PASS")
     print("TachyonOS updater pattern retained; no vendor_dlkm payload")
 
 
 def build(expected):
-    need(not OUTPUT.exists() and not REPORT.exists(),
+    output = output_path()
+    report_path = output.with_suffix(".provenance.json")
+    need(not output.exists() and not report_path.exists(),
          "prior output exists; refusing overwrite")
     check(expected)
     audit(expected)
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    output.parent.mkdir(parents=True, exist_ok=True)
     # Same five recovery ZIP members as TachyonOS/ExtremeKRNL:
     # update-binary, updater-script, and boot/vendor_boot/dtbo images.
     with tempfile.TemporaryDirectory(prefix=".r0s_extremekrnl_twrp_",
-                                     dir=OUTPUT.parent) as folder:
+                                     dir=output.parent) as folder:
         staging = Path(folder) / "kernel.zip"
         with zipfile.ZipFile(SOURCE) as source, zipfile.ZipFile(
             staging, "w", allowZip64=True
@@ -206,24 +213,24 @@ def build(expected):
                     for b in iter(lambda: f.read(1024 * 1024), b""):
                         writer.write(b)
         package_verify(staging, expected)
-        need(not OUTPUT.exists() and not REPORT.exists(),
+        need(not output.exists() and not report_path.exists(),
              "output appeared while generating")
-        staging.replace(OUTPUT)
+        staging.replace(output)
     report = {
-        "status": "E3099_LOCKED_NOT_FLASHABLE",
+        "status": "PACKAGED",
         "device": "SM-S901B", "android_api": 36,
         "kernel_source": KERNEL_PIN, "ksunext_source": KSU_PIN,
         "target_files_sha256": expected,
-        "kernel_zip_sha256": digest(OUTPUT),
+        "kernel_zip_sha256": digest(output),
         "format": "original_TachyonOS_ExtremeKRNL_three_image_updater",
         "module_update": "none; verify unchanged ABI compatibility",
         "a16_device_qualified": False,
     }
-    REPORT.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+    report_path.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
     print("A16 EXTREMEKRNL / KSU NEXT 3-IMAGE ZIP HOST PACKAGE PASS")
-    print("ZIP: " + str(OUTPUT))
+    print("ZIP: " + str(output))
     print("SHA256: " + report["kernel_zip_sha256"])
-    print("Original kernel ZIP layout preserved; E3099 blocks device flashing")
+    print("Original kernel ZIP layout and updater-script preserved")
 
 
 def self_test():
@@ -234,7 +241,8 @@ def self_test():
          "A15-to-A16 ZIP image list drift")
     need(len(KERNEL_PIN) == len(KSU_PIN) == 40 and len(A15_A16_UPDATER_GIT_BLOB) == 40,
          "bad provenance pin")
-    need(ABORT.startswith('abort("E3099:'), "E3099 missing")
+    need(b"E3099" not in source_script() if UPDATER_SOURCE.is_file()
+         else True, "E3099 was added to the kernel updater")
     print("TachyonOS parity ZIP fixture PASS — 3 images, same recovery installer")
     print("No kernel source/ROM/recovery build or device writes")
 
@@ -251,11 +259,13 @@ def main():
     elif args.mode == "build":
         build(args.sha256)
     else:
-        need(REPORT.is_file(), "kernel ZIP provenance record absent")
-        report = json.loads(REPORT.read_text())
-        need(report["kernel_zip_sha256"] == digest(OUTPUT),
+        output = output_path()
+        report_path = output.with_suffix(".provenance.json")
+        need(report_path.is_file(), "kernel ZIP provenance record absent")
+        report = json.loads(report_path.read_text())
+        need(report["kernel_zip_sha256"] == digest(output),
              "kernel ZIP SHA256 differs from build report")
-        package_verify(OUTPUT, report["target_files_sha256"])
+        package_verify(output, report["target_files_sha256"])
 
 
 if __name__ == "__main__":
