@@ -120,3 +120,32 @@ updates and boot of GZH3 A16 on the retained FYI3 bootloader are still
 installer architectures and do not rebuild the ZIP. A bounded TWRP
 runtime qualification is the remaining updater test, and independently
 the A16 kernel/AVB/normal-boot qualification remains mandatory.
+
+## Non-writing TWRP updater-launch probe
+
+The prior full-OTA updater ABI test was a host-only static PASS.
+The next test checks actual TWRP updater invocation without offering
+the complete A16 ROM to TWRP.
+
+Run on host: `python3 scripts/r0s/make_twrp_abort_probe.py`.
+It extracts the byte-identical actual updater from the SHA-pinned
+UN1CA OTA, packages that updater alongside an immediate E3099 abort
+script, and permits **exactly two ZIP members**.
+The probe has no partition-image payloads, ZIP install hooks or
+dynamic partition writing commands. The full ROM remains unchanged.
+
+Once the probe has been generated, when convenient boot the existing
+TWRP. Copy only this small probe ZIP to the device (e.g. ADB push
+to `/tmp` while the device is in TWRP), select it in TWRP Install.
+An E3099 error and failed install is the expected **probe PASS**.
+Never test by installing the 6 GB GZH3 full ROM ZIP.
+If TWRP signature verification rejects this unsigned probe before
+launching the updater, record this as inconclusive, not an ABI error.
+The installer UI may update recovery logs; abort-only edify does
+not write to BL, CP, boot, super or any other partition.
+
+This is a separate tiny diagnostic, **not an alternative ROM or
+another installation stage**. Confirm TachyonOS still boots afterwards.
+A result still does not qualify runtime update_dynamic_partitions,
+block_image_update, GZH3 normal boot, AVB or RIL, and E3099 remains
+mandatory for the real UN1CA package.
