@@ -194,3 +194,30 @@ fingerprint. This provides **evidence**, not confirmation that Samsung recovery
 accepts a test-signed UN1CA OTA or can invoke this updater. Static inventory
 needs to run on the actual host; CI performs syntax checks only. No full OTA
 is authorised, and the E3099 abort must remain active.
+
+## GZH3 stock recovery / UN1CA updater static inventory PASS (2026-10-13)
+
+The user ran `audit_stock_recovery_updater.sh` against pinned GZH3.
+Native recovery ELF was dynamically linked AArch64 with `/system/bin/linker64`
+(ELF sha256 `95422429a08199b5520e73dafd16e87b69d9f52e9f31c1a0ffbbaa8cdf02a5b2`).
+UN1CA's deprecated-OTA updater was statically linked AArch64 for Android 36
+(sha256 `28378c9dcae8a0e6035e5f90e66c2a128eab3cce2982e43aa33424542507664a`).
+Recovery strings include the `META-INF/com/google/android/update-binary` path,
+`/tmp/update-binary`, and `Signature verification failed`; the UN1CA updater
+exposes `block_image_update` and `update_dynamic_partitions`.
+These are **static compatibility indications**, not proof of successful execution.
+
+GZH3 stock recovery ramdisk contains `publiccert.pem` and
+`system/etc/security/otacerts.zip`. Development OTA signing cert
+`security/aosp_testkey.x509.pem` reported SHA-256 fingerprint
+`A4:0D:A8:0A:59:D1:70:CA:A9:50:CF:15:C1:8C:45:4D:47:A3:9B:26:98:9D:8B:64:0E:CD:74:5B:A7:1B:F5:DC`.
+
+New read-only `scripts/r0s/audit_recovery_ota_trust.sh` extracts only those
+stock recovery certificate files from the hash-pinned GZH3 ramdisk and uses
+`scripts/r0s/check_recovery_ota_certificates.py` to compare exact X.509
+certificate hashes and canonical public-key hashes against the project's
+development signer. Synthetic positive/negative fixtures are covered by CI.
+A missing key is a likely blocker for testkey-signed native-recovery OTA,
+**not proof that no other recovery verification path exists**. Real-host
+certificate comparison is pending; no flashable OTA has been generated.
+Installer abort E3099 remains active.
