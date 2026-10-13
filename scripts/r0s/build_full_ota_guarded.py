@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 UN1CA contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Guarded HOST-ONLY full OTA packaging for UN1CA SM-S901B GZH3.
+"""Guarded UN1CA SM-S901B GZH3 OTA packaging from retained target-files.
 
-Builds ONE integrated ROM ZIP from the existing retained target-files ZIP.
-Requires and verifies the unconditional E3099 updater abort.
-Never flashes, changes bootloader/phone or removes the safety abort.
+Default produces a development-locked E3099 ZIP. Explicit --installable
+omits ONLY that exact abort in the generated updater, preserving the
+SM-S901B device assertion and all payloads. Both are unqualified for
+physical Android 16 boot; this script never accesses a device.
 """
 import argparse
 import hashlib
@@ -21,7 +22,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 INPUT = ROOT / "out/r0s_A16_GZH3_HOST_ONLY-target_files.zip"
 OUTPUT = ROOT / "out/UN1CA_r0s_A16_GZH3_E3099_BLOCKED_full_ota.zip"
-PIN_SHA256 = "6c20d013b7f3087e08fe453d5eb10fcf9411107898c98705b6f8b30347a9b8fd"
+INSTALLABLE_OUTPUT = ROOT / "out/UN1CA_r0s_A16_GZH3_INSTALLABLE_UNQUALIFIED.zip"
+PIN_SHA256 = "4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a"
 LOCK = ROOT / "target/r0s/installer/assertions.edify"
 LOGICAL = ("system", "vendor", "product", "odm", "vendor_dlkm")
 RAW = ("boot.img", "vendor_boot.img", "dtbo.img")
@@ -51,7 +53,7 @@ def locked():
             "source installer E3099 safety lock missing")
 
 
-def check_ota(zpath):
+def check_ota(zpath, *, installable=False):
     """Check actual assembled updater ZIP, including no-write-before-abort."""
     with zipfile.ZipFile(zpath) as z:
         names = z.namelist()
@@ -93,9 +95,18 @@ def check_ota(zpath):
             script.find("block_image_update("),
             script.find("package_extract_file("),
         ) if v >= 0), default=-1)
-        require(assert_index >= 0 and (write_index < 0 or assert_index < write_index),
-                "unconditional E3099 abort not before partition writes")
-        require(script.count(E3099) == 1, "incorrect E3099 abort count")
+        if installable:
+            require(assert_index == -1 and "E3099:" not in script,
+                    "installable ZIP still contains the E3099 development abort")
+            model = 'getprop("ro.boot.em.model") == "SM-S901B"'
+            require(model in script and
+                    (write_index < 0 or script.find(model) < write_index),
+                    "SM-S901B model assertion missing or after writes")
+        else:
+            require(assert_index >= 0 and
+                    (write_index < 0 or assert_index < write_index),
+                    "unconditional E3099 abort not before partition writes")
+            require(script.count(E3099) == 1, "incorrect E3099 abort count")
         require("update_dynamic_partitions(" in script, "no dynamic partition command")
         require(script.count("block_image_update(") == 5, "not exactly five block updates")
         for p in LOGICAL:
@@ -126,7 +137,9 @@ def check_ota(zpath):
                         "invalid resized logical partition bytes")
         for n in RAW:
             require(z.getinfo(n).file_size > 4096, "raw boot image unexpectedly small")
-    print("UN1CA single-ZIP layout and E3099-FIRST updater checks PASS")
+    print("UN1CA single-ZIP layout and " +
+          ("INSTALLABLE/NO-E3099" if installable else "E3099-FIRST") +
+          " updater checks PASS")
     print("Five logical partitions + boot/vendor_boot/dtbo; no BL, CP, recovery or vbmeta")
     print("STATIC ONLY: updater protocol, boot and TWRP on-device remain unqualified")
 
@@ -166,7 +179,7 @@ def self_test():
                "".join("add " + p + " group_basic\n" for p in LOGICAL) +
                "".join("resize " + p + " 4096\n" for p in LOGICAL))
         def make(valid=True):
-            script = ('getprop("ro.product.device");\n' +
+            script = ('getprop("ro.boot.em.model") == "SM-S901B" || abort("E3004");\n' +
                       (E3099 + "\n" if valid else "") +
                       'assert(update_dynamic_partitions(package_extract_file("dynamic_partitions_op_list")));\n' +
                       "".join('block_image_update(map_partition("' + p +
@@ -187,7 +200,14 @@ def self_test():
                     z.writestr(p, bytes(4097))
         make()
         check_ota(file)
+        try:
+            check_ota(file, installable=True)
+        except Blocked:
+            pass
+        else:
+            raise AssertionError("locked installer wrongly accepted as installable")
         make(False)
+        check_ota(file, installable=True)
         try:
             check_ota(file)
         except Blocked:
@@ -199,20 +219,36 @@ def self_test():
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--build", action="store_true", help="assemble one locked host OTA ZIP")
+    p.add_argument("--build", action="store_true", help="assemble an OTA ZIP")
+    p.add_argument("--installable", action="store_true",
+                   help="explicitly omit E3099 in the generated r0s updater")
+    p.add_argument("--verify", action="store_true",
+                   help="verify selected output ZIP without building")
     p.add_argument("--self-test", action="store_true", help="synthetic CI only")
     args = p.parse_args()
     try:
         if args.self_test:
             self_test()
             return 0
-        require(not OUTPUT.exists(), "output already exists; never overwrite")
-        required = check_source()
-        if not args.build:
-            print("PRECHECK PASS; optional --build would assemble full ZIP without ROM rebuild")
-            print("NO ROM ZIP CREATED; E3099 ACTIVE")
+        output = INSTALLABLE_OUTPUT if args.installable else OUTPUT
+        if args.verify:
+            require(output.is_file(), "selected OTA output is missing")
+            check_ota(output, installable=args.installable)
+            unzip = shutil.which("unzip")
+            require(unzip is not None, "unzip CLI required for ZIP CRC")
+            require(subprocess.run([unzip, "-tq", str(output)],
+                                   stdout=subprocess.DEVNULL).returncode == 0,
+                    "OTA ZIP CRC failed")
+            print("OTA_SHA256=" + digest(output))
+            print("OTA_BYTES=" + str(output.stat().st_size))
             return 0
-        partial = OUTPUT.with_name(OUTPUT.stem + ".partial.zip")
+        require(not output.exists(), "output already exists; never overwrite")
+        check_source()
+        if not args.build:
+            print("PRECHECK PASS; --build assembles the selected ZIP without ROM rebuild")
+            print("MODE=" + ("INSTALLABLE_UNQUALIFIED" if args.installable else "E3099_LOCKED"))
+            return 0
+        partial = output.with_name(output.stem + ".partial.zip")
         require(not partial.exists(), "partial output exists; no overwrite")
         command = ("set -eo pipefail; "
                    "source ./buildenv.sh r0s >/dev/null; "
@@ -220,11 +256,16 @@ def main():
                    "scripts/build_flashable_zip.sh --output \"$1\" \"$2\"")
         print("===== UPSTREAM UN1CA FULL OTA BUILDER (NO MAKE_ROM) =====", flush=True)
         try:
+            env = dict(os.environ)
+            if args.installable:
+                env["UN1CA_R0S_INSTALLABLE_OTA"] = "1"
+            else:
+                env.pop("UN1CA_R0S_INSTALLABLE_OTA", None)
             run = subprocess.run(["bash", "-c", command, "build-full-ota",
-                                  str(partial), str(INPUT)], cwd=ROOT)
+                                  str(partial), str(INPUT)], cwd=ROOT, env=env)
             require(run.returncode == 0, "upstream full OTA generation failed")
             require(partial.is_file(), "upstream builder produced no ZIP")
-            check_ota(partial)
+            check_ota(partial, installable=args.installable)
             unzip = shutil.which("unzip")
             require(unzip is not None, "unzip CLI needed for full ZIP CRC")
             check = subprocess.run([unzip, "-tq", str(partial)],
@@ -232,14 +273,16 @@ def main():
             require(check.returncode == 0, "full OTA ZIP CRC check failed")
             # Guard persisted through build and sign.
             locked()
-            require(not OUTPUT.exists(), "output appeared during build; refusing replace")
-            os.replace(partial, OUTPUT)
+            require(not output.exists(), "output appeared during build; refusing replace")
+            os.replace(partial, output)
         finally:
             if partial.is_file():
                 partial.unlink()
-        print("HOST_OTA_SHA256=" + digest(OUTPUT))
-        print("HOST_OTA_BYTES=" + str(OUTPUT.stat().st_size))
-        print("HOST-ONLY FULL OTA COMPLETE; E3099 ACTIVE; DO NOT FLASH")
+        print("HOST_OTA_SHA256=" + digest(output))
+        print("HOST_OTA_BYTES=" + str(output.stat().st_size))
+        print("FULL OTA PACKAGE COMPLETE; " +
+              ("INSTALLABLE BUT A16 BOOT/ROLLBACK UNQUALIFIED"
+               if args.installable else "E3099 ACTIVE; DO NOT FLASH"))
         return 0
     except (Blocked, OSError, ValueError, zipfile.BadZipFile, UnicodeError) as exc:
         print("r0s FULL OTA BLOCKED: " + str(exc), file=sys.stderr)

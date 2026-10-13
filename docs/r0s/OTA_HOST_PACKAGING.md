@@ -1,5 +1,45 @@
 # UN1CA r0s GZH3: single ZIP host packaging
 
+## Installation-candidate packaging — 13 October 2026
+
+The **current** retained target-files ZIP is
+`out/r0s_A16_GZH3_HOST_ONLY-target_files.zip`, SHA256
+`4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a`.
+The previously generated locked full ROM
+`UN1CA_r0s_A16_GZH3_FINAL_E3099_LOCKED.zip`
+(SHA256 `4f092fde076296c7950d92b77e078431ed0c84f595395bc1cdbf46deb74c81fe`)
+is **not installable**. It is preserved as existing host evidence.
+
+No kernel, ROM workdir or target-files rebuild is needed. UN1CA's existing
+`scripts/build_flashable_zip.sh` remains the only actual OTA builder.
+The r0s-only, explicit `--installable` option in
+`scripts/r0s/build_full_ota_guarded.py` omits only the pinned E3099
+abort from the generated updater. The existing SM-S901B assertion and all
+five logical plus three raw images stay intact. Default mode remains
+E3099-locked. The signed installable ZIP is a **device-unqualified
+candidate**, not a proven bootable ROM.
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+python3 scripts/r0s/build_full_ota_guarded.py --self-test
+python3 scripts/r0s/build_full_ota_guarded.py --installable   # space/identity preflight
+python3 scripts/r0s/build_full_ota_guarded.py --installable --build
+python3 scripts/r0s/build_full_ota_guarded.py --installable --verify
+```
+
+Intended output: `out/UN1CA_r0s_A16_GZH3_INSTALLABLE_UNQUALIFIED.zip`.
+Commands do not touch the phone; they require substantial free disk.
+The built ZIP is **not safe to flash merely because E3099 is absent**:
+GZH3/ExtremeKRNL boot on the retained unlocked FYI3 binary-I bootloader,
+vendor module loading, normal Android/SELinux and rollback from A16 are
+not device-qualified. The user's BL/CP/TWRP/vbmeta preservation policy
+remains unchanged.
+
+Historical sections below document the previous E3099-locked build and
+must not be interpreted as the current final packaging pin.
+
+
 Current stage: host target-files complete. This step uses the upstream
 `scripts/build_flashable_zip.sh` full-OTA builder against the existing
 `out/r0s_A16_GZH3_HOST_ONLY-target_files.zip` (pinned SHA-256
