@@ -5,6 +5,38 @@ Keep E3099 abort in target/r0s/installer/assertions.edify. NO flashing, BL
 upgrade, A16 stock installation, recovery replacement, userdata wipe or
 automatic downgrade recommendation.
 
+## Verified Android 16 firmware at the EXISTING bootloader revision
+
+**Key finding (Samsung release history and EUX archive):** Samsung released
+SM-S901B **Android 16 / One UI 8** as `S901BXXUIGYI7` with **bootloader
+binary I (18)**, the same rollback revision as the working TachyonOS FYI3
+`S901BXXSIFYI3`. Therefore **Android 16 itself does not require an O (24)
+bootloader**. GZH3's `O` describes the revision of the matching Samsung
+*stock GZH3 bootloader package*, not a proven minimum requirement of all
+A16 kernels/vendor images.
+
+Primary historical and firmware evidence:
+- https://doc.samsungmobile.com/SM-S901B/021718220304/eng.html
+- https://samfirm.shop/build/S901BXXUIGYI7
+- https://s-update.samsungvn.com/devices/SM-S901B
+
+**Project decision:** retain the known-working unlocked FYI3 BL (binary I)
+during development. Keep GZH3 as the most-progressed native A16 ROM source,
+using stock Android 16 GYI7 (also binary I) as the **low-level firmware
+compatibility reference**. Before any ROM installation, establish whether
+GZH3's newer kernel, vendor_boot, DTBO and vendor need a firmware change
+beyond binary-I capability. Matching binary-I numbering does NOT prove
+TachyonOS's *exact* FYI3 bootloader bytes are identical to GYI7 nor that
+FYI3 BL boots unmodified GZH3 images.
+
+**Do not flash** GYI7 stock or GZH3 BL as a shortcut. One UI 8 has
+bootloader-unlocking restrictions and preservation of the existing
+unlocked state is not established for this S901B. Neither full stock A16
+preinstallation nor an O-revision rollback jump is currently a justified
+prerequisite. Compare FYI3/GYI7/GZH3 BL/CP details only as needed to
+resolve this exact compatibility boundary; do not restart generic
+Android property surveys or port from scratch.
+
 ## Firmware components and required versions
 
 | Component | Existing TachyonOS FYI3 baseline | UN1CA GZH3 ROM installer action | Release requirement |
