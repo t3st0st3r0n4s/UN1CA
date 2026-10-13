@@ -105,3 +105,45 @@ workdir and installer E3099 are still present. It modifies none of these.
 The GitHub CI `--self-test` is syntax-only; only the user's host run can
 confirm the actual image and module layout. A PASS is not an ABI, Android
 SELinux, bootloader-compatibility, full OTA, or board PASS.
+
+### GZH3 EROFS compatibility gate — introduced after the real custom-kernel audit
+
+The real host ran `scripts/r0s/audit_extremekrnl_a16_candidate.sh`
+and returned **CUSTOM KERNEL POSTBUILD INSPECTION PASS**: kernel and
+vendor_boot header v4, custom boot OS label 16.0.0/2026-05, five exact
+newly built vendor_dlkm modules, 328 `modules.load` entries, and two
+LZ4-compressed vendor_boot fragments. This is *not* a vendor-ramdisk
+comparison against GZH3.
+
+**Integration is blocked pending a native-to-custom vendor_boot reconciliation.**
+The native UN1CA GZH3 ROM workdir has already modified the Samsung
+vendor_boot fstab to use EROFS for the five logical partitions. The raw
+ExtremeKRNL vendor_boot was independently packaged with its own fstab
+and omits the GZH3 boot command line's
+`androidboot.selinux=permissive` token. Neither image should be copied
+over the other automatically: the early-mount fstab and the normal-boot
+SELinux policy must be explicitly qualified.
+
+Read-only comparison, preserving all native and custom images:
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+PATH="$PWD/out/tools/bin:$PATH" \
+  python3 scripts/r0s/compare_extremekrnl_gzh3_a16.py
+```
+
+The comparator unpacks both vendor_boot images into a temporary directory,
+lists the ramdisks, prints the work-vs-candidate fstab differences,
+checks the five custom .ko files embedded in vendor_ramdisk01 against
+the compiled artifacts, and checks `modules.load` names. A reported
+`INTEGRATION HOLD` is an expected, safe outcome if these differ.
+It must not be bypassed: use the actual diff to design a reconciled
+vendor_boot and matched module/metadata pipeline.
+
+Other remaining qualifications: firmware/DTBO compatibility between
+ExtremeKRNL's Samsung S711N EZI2 source and S901B GZH3, custom
+kernel/module dependency ABI and module load ordering, the original FYI3
+binary-I bootloader, AVB, complete A16 ROM and SELinux runtime, and
+rollback and physical BOARD tests. KernelSU manager reuse remains staged
+and inactive. `E3099` stays mandatory.
