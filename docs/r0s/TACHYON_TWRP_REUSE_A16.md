@@ -82,7 +82,7 @@ The previously observed TWRP recovery fstab covers only 1/5 native
 GZH3 EROFS mount declarations, but this is a *filesystem UI/mount
 limitation*, **not proof of an incompatibility with the block updater**.
 Do NOT change the Android 16 ROM back to ext4 or replace its native
-ER O FS boot/fstab solely to match the older TWRP's mounting options.
+EROFS boot/fstab solely to match the older TWRP's mounting options.
 The GZH3 native EROFS early-boot fstab must be preserved.
 
 ## Outstanding, narrowly scoped compatibility qualifications
