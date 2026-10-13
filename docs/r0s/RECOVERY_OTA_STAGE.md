@@ -221,3 +221,49 @@ A missing key is a likely blocker for testkey-signed native-recovery OTA,
 **not proof that no other recovery verification path exists**. Real-host
 certificate comparison is pending; no flashable OTA has been generated.
 Installer abort E3099 remains active.
+
+## Real GZH3 stock recovery OTA signer comparison (2026-10-13)
+
+The user reran `python3 scripts/ci/test_r0s_recovery_ota_certificates.py`,
+which passed all 8 synthetic cases. Then the genuine extracted GZH3 recovery
+trust files were compared with the repository's development OTA signer via
+`bash scripts/r0s/audit_recovery_ota_trust.sh`. This **read-only evidence
+collection passed**; it is **not** a stock recovery OTA compatibility PASS.
+
+- UN1CA `security/aosp_testkey.x509.pem`: certificate DER SHA-256
+  `a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc`;
+  public-key SPKI SHA-256
+  `ef57b690165cb561b5026922c00d2d6574e8b184fa7d161e076f06e06e6d35db`.
+- GZH3 recovery `system/etc/security/otacerts.zip`:
+  `asks_update.x509.pem` DER SHA-256
+  `b731578c253c65e350653e7e1dc5a26f417289fcff17bc456d466e80617478f2`;
+  `asks_update_256.x509.pem` DER SHA-256
+  `958fd77e6cc19af94dfaab7c9c8046fe58d92a63c89a212b01e2fa45a1e81b7b`.
+  Both stock certificates use SPKI SHA-256
+  `fb41b567dd246f03f55a25c5772ebb731322422421eb64230a1f731130085357`.
+- GZH3 recovery root `publiccert.pem`: DER SHA-256
+  `14cd0fbd3a3479e66a40e974a6b9f19f8e48f05254857cb6619c845aa1b4b509`;
+  SPKI SHA-256
+  `292afe4ffe8d8a96c1c961831903f4a0d8e831cbed39d53235a5f063e4cc38e2`.
+- Exact cert and public-key comparisons with both stock trust stores were
+  **false**. No UN1CA development signer public key was found among the
+  parsed native GZH3 recovery certificates.
+
+**Disposition:** Native GZH3 stock recovery does **not** have demonstrated
+trust for an OTA signed with UN1CA's development testkey. Treat that route
+as **BLOCKED / NOT QUALIFIED** until an independently verified acceptance
+mechanism exists. This does not invalidate host target-files or stock-kernel
+provenance, nor prove anything about other custom recoveries. Do not use
+Samsung's production signing identity, replace the stock trust database,
+disable signature verification on stock recovery, or flash based on strings
+alone.
+
+**Next gate:** inspect an exact S901B/r0s recovery candidate against
+GZH3 boot header, kernel, ramdisk, fstab, installer/updater capabilities,
+and expected partition geometry. Prior Android 15 TWRP/Lineage recoveries
+are only candidate sources; they must not be presumed compatible with
+GZH3 Android 16. Before any real OTA or recovery write, further qualify
+bootloader/GPT/rollback constraints, kernel-module ABI/loadability, normal
+SELinux behavior, and a controlled on-device recovery validation plan.
+Keep the completed HOST_ONLY target-files ZIP and stock extracted firmware
+unchanged. Installer `E3099` remains active.
