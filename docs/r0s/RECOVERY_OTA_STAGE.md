@@ -410,3 +410,36 @@ signing key; this **stock recovery** trust mismatch must not be
 conflated with custom recovery behavior. Do not remove `E3099` until
 device/recovery gates are actually passed, and do not attempt to
 flash the existing HOST_ONLY target-files ZIP.
+
+## Physical FYI3 TWRP E3099-only updater launch — DEVICE PASS (2026-10-13)
+
+User invoked `r0s_TWRP_E3099_ABORT_ONLY_probe.zip` using the
+**already-installed S901B TWRP**. The on-screen log reported:
+
+```
+Full SELinux support is present.
+MTP Enabled
+Installing zip file
+Unmounting System...
+E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.
+Updater process ended with ERROR: 1
+Updating partition details...
+...done
+```
+
+**EXPECTED PASS**: TWRP launched the actual UN1CA `update-binary`
+included byte-identically in the probe, parsed the script and returned
+its deliberate `E3099` abort. Error 1 is intentional. Recovery
+"Unmounting System" is preparatory state management, not a flash.
+
+Probe contents are only two files (updater ELF and immediate abort);
+there is no ROM payload, dynamic operation list or kernel image, and
+no probe-specified partition writing. The working FYI3 bootloader was
+not targeted. Return to normal TachyonOS boot should be confirmed
+separately.
+
+**Gate updated:** old-TWRP *updater-launch* runtime PASS. The full
+`update_dynamic_partitions` / `block_image_update` functionality
+and EROFS normal-boot experience remain UNTESTED. So do GZH3 kernel,
+vendor modules, AVB, radio, SELinux and Android 16 board boot.
+Keep E3099 in the actual integrated UN1CA OTA. Do NOT flash it.
