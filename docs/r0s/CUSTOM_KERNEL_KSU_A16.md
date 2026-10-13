@@ -354,107 +354,62 @@ The GitHub one-shot mechanism mirrors the proven Android 15 delivery,
 but its `u:r:ksu:s0` execution, actual package-manager success and
 root-manager runtime remain **A16 BOARD DEFERRED**. E3099 active.
 
-### Kernel-only recovery-update workflow (no full ROM rebuild)
+### Kernel-only update ZIP: exact TachyonOS pattern retained
 
-**The upstream kernel `build.sh -m r0s -k` already emits an ExtremeKRNL
-ZIP under `out/kernel_tmp-exynos2200/build/out/r0s/`**, but it is
-**not compatible with the GZH3/UN1CA hybrid**. Its updater-script
-writes the upstream raw `boot.img`, `vendor_boot.img`, and
-`dtbo.img` directly to by-name devices; its `vendor_boot.img`
-does not preserve native GZH3 EROFS/AVB early mount, and the zip does
-not update the five rebuilt `vendor_dlkm` modules. **Do not flash it.**
+**Reference and device proof:** [TachyonOS r0s-fyi3 build notes](https://github.com/t3st0st3r0n4s/TachyonOS/blob/r0s-fyi3/docs/r0s-fyi3-build.md) document the user's real TWRP flash of
+`ExtremeKRNL-Nexus-2200-v1_r0s_UNOFFICIAL_KSU_10-10-2026_11-27-29.zip`.
+It upgraded **built-in KernelSU Next to v3.4.1** on the working S901B A15
+without a ROM rebuild. All five vendor_dlkm modules were byte-identical
+to the previously installed v3.4.0 equivalents; 639 symbol references
+matched the rebuilt kernel's CRCs. TWRP flashed only
+**boot.img, vendor_boot.img and dtbo.img**, and boot/root/module-load
+passed. This A15 result is accepted evidence; **do not rerun TWRP
+identity/source or A15 compatibility tests** as A16 prerequisites.
 
-To retain TachyonOS's fast kernel-only update route, the
-`scripts/r0s/package_extremekrnl_update_a16.py` tool prepares a
-**GZH3-compatible host-only recovery payload** from the existing,
-already signed and audited UN1CA target-files archive. It carries
-`images/boot.img`, `images/vendor_boot.img`, `images/dtbo.img`,
-and `images/vendor_dlkm.img`; this keeps matching EROFS `vendor_dlkm`
-content beside the boot chain. Unlike the upstream ZIP, these boot
-images have been reconciled with the native workdir before packaging.
+The A15 ExtremeKRNL kernel repo
+`ExtremeXT/android_kernel_samsung_s5e9925` at
+`9ac30b43ebf74a607bf778d479609ab7ccf0797b`
+and our A16 source `milxnaq/android_kernel_samsung_s5e9925`
+at `78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95`
+have the **same actual** `build/update-binary` Git blob:
+`0a6085a9251b664ed0b591d8457ca2c01afaaa8e`.
+Both upstream `build/updater-script` files use three
+`package_extract_file` writes; only the log strings/order vary.
 
-The output
-`out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_GZH3_RECOVERY_HOLD.zip`
-contains an unconditional E3099-aborting `updater-script`,
-**no** `update-binary` or partition writer, a manifest with pinned
-source/KernelSU commits, SHA256 for all four payloads and a prominent
-`NOT_FLASHABLE.txt`. It is **not** yet TWRP-flashable.
+**UN1CA reuses this existing kernel ZIP format directly, not a new OTA
+architecture.** `scripts/r0s/package_extremekrnl_update_a16.py`
+copies the A16 ExtremeKRNL update-binary and updater-script from
+`out/kernel_tmp-exynos2200/build/`, prefixes the mandatory E3099
+development abort, and substitutes the *reconciled and signed* UN1CA
+GZH3 target-files boot images for the upstream boot images.
 
-This separate payload is generated **without running make_rom.sh,
-recompiling the kernel, or building target-files again**, provided
-existing target-files (with module-matching, signed images) is present.
-To validate and create the candidate using the actual 2026-10-13
-target-files artifact:
+Output: `out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_TWRP_E3099_LOCKED.zip`.
 
-```bash
-cd ~/android/UN1CA
-git pull --ff-only origin sixteen-r0s
-python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
-python3 scripts/r0s/package_extremekrnl_update_a16.py check \
-  4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a
-python3 scripts/r0s/package_extremekrnl_update_a16.py build \
-  4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a
-python3 scripts/r0s/package_extremekrnl_update_a16.py verify
-```
+**Exactly five ZIP members:**
 
-`build` reruns the deep target-files and packaged-module audits before
-copying payload bytes. It refuses to overwrite a previous output, and
-there is no implicit attempt to flash or sideload the candidate. For
-a future build supply that build's actual SHA256; never use an older
-digest or ROM module set.
+- `META-INF/com/google/android/update-binary` (original ExtremeKRNL)
+- `META-INF/com/google/android/updater-script` (original commands
+  preceded by E3099)
+- `files/boot.img`
+- `files/vendor_boot.img`
+- `files/dtbo.img`
 
-**Before a real recovery ZIP can be enabled:** finish
-GZH3/FYI3 bootloader and AVB test-key trust checks, KMI/`modules.load`
-and runtime module loading, recovery ABI and Android 16 TWRP support,
-mounting/updating a *dynamic* EROFS `vendor_dlkm` partition, partition
-backups and rollback, and physical BOARD boot. Then add a deliberately
-reviewed recovery updater to a *new* flash-qualified output format.
-Do not bypass E3099 or reuse upstream `package_extract_file` writes.
+**No vendor_dlkm image, no block_image_update, no remapping super, no
+system/vendor/product/odm changes, no TWRP/recovery replacement.**
+For an *already installed* UN1CA A16 ROM, the matching modules remain
+resident in `vendor_dlkm`; a KSU-only update is eligible for the
+three-image path only if module ABI and kernel symbol CRC compatibility
+is established. If modules change incompatibly, do **not** force this
+kernel-only route; provide a deliberate separate migration plan.
 
-For later KernelSU Next **code** upgrades the kernel itself must be
-rebuilt, and if its ABI changes the matching `vendor_dlkm` modules
-and `vendor_boot` load list must be rebuilt and validated. A full
-UN1CA userspace ROM rebuild is not inherently needed. Updating only
-the standalone Manager APK may not need any kernel flashing at all.
+The native GZH3 boot/vendor_boot fstab, bootconfig and DTB must be
+reconciled for A16; this is the single necessary platform-specific
+difference, not an excuse to redesign the updater. Never flash the raw
+upstream A16 ExtremeKRNL ZIP with its incompatible vendor_boot ramdisk.
 
-### Kernel-only TWRP updater — executable architecture, 2026-10-13
-
-**User-established A15 baseline:** On 2026-10-10, the working TachyonOS
-S901B TWRP successfully flashed
-`ExtremeKRNL-Nexus-2200-v1_r0s_UNOFFICIAL_KSU_10-10-2026_11-27-29.zip`
-to upgrade built-in KernelSU Next to v3.4.1 **without a ROM rebuild**.
-This is accepted. Do NOT repeat A15 TWRP/TAR identity/source/ABI checks
-as a requirement for this workflow; the missing optional local
-`TachyonOS/TWRP` TAR is not an A16 build blocker.
-
-The older `package_extremekrnl_update_a16.py` output
-`*_RECOVERY_HOLD.zip` (no update-binary, inert archive) was replaced,
-not supplemented with a second updater architecture. It now creates
-`out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_TWRP_E3099_LOCKED.zip`
-from the existing real
-`out/r0s_A16_GZH3_HOST_ONLY-target_files.zip`. Its contents are:
-- The **same actual** `prebuilts/bootable/deprecated-ota/updater` binary
-  from the UN1CA updater-launch probe already accepted by installed TWRP;
-- `vendor_dlkm.new.dat.br`, `vendor_dlkm.transfer.list`,
-  `vendor_dlkm.patch.dat` generated from target-files' **AVB-signed
-  GZH3 EROFS vendor_dlkm.img** by the upstream `img2sdat` + Brotli
-  tooling; the five pinned ExtremeKRNL modules travel with this image;
-- Reconciled and AVB-signed `boot.img`, `vendor_boot.img`, `dtbo.img`
-  copied from validated target-files — NOT the raw upstream kernel ZIP;
-- An edify updater: **unconditional E3099 first**, then
-  `block_image_update(map_partition("vendor_dlkm"), ...)`, followed
-  by the three by-name boot image writes;
-- A digest manifest and prominent do-not-flash notice.
-
-**Critically, NO `remove_all_groups` and NO
-`update_dynamic_partitions`**. A kernel-only updater targets an
-*existing installed A16 UN1CA* and must not delete or resize system,
-product, vendor or odm. It assumes installed `vendor_dlkm` exists with
-sufficient space. It does not touch TWRP, recovery, firmware BL/CP,
-vbmeta or userdata. It does not rebuild userspace or the kernel.
-
-Existing target-files SHA256 from the actual user build:
-`4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a`.
+Generate the **host-only E3099-locked** kernel ZIP from the already
+packaged and verified A16 target-files, without recompiling kernel
+or rebuilding the ROM:
 
 ```bash
 cd ~/android/UN1CA
@@ -465,14 +420,14 @@ python3 scripts/r0s/package_extremekrnl_update_a16.py build \
 python3 scripts/r0s/package_extremekrnl_update_a16.py verify
 ```
 
-The `build` mode performs A16 target-files AVB and kernel-module
-provenance audits, then outputs one small kernel-only updater ZIP.
-**The output is intentionally E3099-locked**; do not attempt to flash.
-A16 first-install, normal boot, AVB trust on retained FYI3 BL,
-vendor_dlkm update-capability and kernel rollback/BOARD remain to be
-qualified before authorising a future writable updater. The successful
-A15 update is not automatically proof of A16 kernel compatibility.
+Source hash reflects the user's actual 2026-10-13 A16 target-files
+archive. Subsequent kernel/KSU builds need to update this input with
+their newly reconciled, signed kernel images and verify module ABI.
+**A future KernelSU upgrade should not require a full ROM userspace
+build**, but the current command uses the retained v3.4.1 target-files
+and is **not yet a generalized new-version patcher**.
 
-After A16 is operational, future KSU versions require compiling the
-changed kernel (and ABI-coupled modules as needed) and packaging these
-components only. A **full ROM userspace rebuild is unnecessary**.
+The three-image package is intentionally NOT flashable:
+E3099 aborts before all writes. A16 bootloader/AVB, normal boot,
+runtime SELinux, and kernel-update-on-installed-A16 remain
+**BOARD DEFERRED**; successful A15 TWRP flashing is not A16 proof.
