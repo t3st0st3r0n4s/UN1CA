@@ -353,3 +353,66 @@ manager-integrated; the archive must be rebuilt after workdir promotion.
 The GitHub one-shot mechanism mirrors the proven Android 15 delivery,
 but its `u:r:ksu:s0` execution, actual package-manager success and
 root-manager runtime remain **A16 BOARD DEFERRED**. E3099 active.
+
+### Kernel-only recovery-update workflow (no full ROM rebuild)
+
+**The upstream kernel `build.sh -m r0s -k` already emits an ExtremeKRNL
+ZIP under `out/kernel_tmp-exynos2200/build/out/r0s/`**, but it is
+**not compatible with the GZH3/UN1CA hybrid**. Its updater-script
+writes the upstream raw `boot.img`, `vendor_boot.img`, and
+`dtbo.img` directly to by-name devices; its `vendor_boot.img`
+does not preserve native GZH3 EROFS/AVB early mount, and the zip does
+not update the five rebuilt `vendor_dlkm` modules. **Do not flash it.**
+
+To retain TachyonOS's fast kernel-only update route, the
+`scripts/r0s/package_extremekrnl_update_a16.py` tool prepares a
+**GZH3-compatible host-only recovery payload** from the existing,
+already signed and audited UN1CA target-files archive. It carries
+`images/boot.img`, `images/vendor_boot.img`, `images/dtbo.img`,
+and `images/vendor_dlkm.img`; this keeps matching EROFS `vendor_dlkm`
+content beside the boot chain. Unlike the upstream ZIP, these boot
+images have been reconciled with the native workdir before packaging.
+
+The output
+`out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_GZH3_RECOVERY_HOLD.zip`
+contains an unconditional E3099-aborting `updater-script`,
+**no** `update-binary` or partition writer, a manifest with pinned
+source/KernelSU commits, SHA256 for all four payloads and a prominent
+`NOT_FLASHABLE.txt`. It is **not** yet TWRP-flashable.
+
+This separate payload is generated **without running make_rom.sh,
+recompiling the kernel, or building target-files again**, provided
+existing target-files (with module-matching, signed images) is present.
+To validate and create the candidate using the actual 2026-10-13
+target-files artifact:
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
+python3 scripts/r0s/package_extremekrnl_update_a16.py check \
+  4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a
+python3 scripts/r0s/package_extremekrnl_update_a16.py build \
+  4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a
+python3 scripts/r0s/package_extremekrnl_update_a16.py verify
+```
+
+`build` reruns the deep target-files and packaged-module audits before
+copying payload bytes. It refuses to overwrite a previous output, and
+there is no implicit attempt to flash or sideload the candidate. For
+a future build supply that build's actual SHA256; never use an older
+digest or ROM module set.
+
+**Before a real recovery ZIP can be enabled:** finish
+GZH3/FYI3 bootloader and AVB test-key trust checks, KMI/`modules.load`
+and runtime module loading, recovery ABI and Android 16 TWRP support,
+mounting/updating a *dynamic* EROFS `vendor_dlkm` partition, partition
+backups and rollback, and physical BOARD boot. Then add a deliberately
+reviewed recovery updater to a *new* flash-qualified output format.
+Do not bypass E3099 or reuse upstream `package_extract_file` writes.
+
+For later KernelSU Next **code** upgrades the kernel itself must be
+rebuilt, and if its ABI changes the matching `vendor_dlkm` modules
+and `vendor_boot` load list must be rebuilt and validated. A full
+UN1CA userspace ROM rebuild is not inherently needed. Updating only
+the standalone Manager APK may not need any kernel flashing at all.
