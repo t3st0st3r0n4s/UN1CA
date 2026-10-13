@@ -151,6 +151,24 @@ preserving bootloader unlock.
   protocol, AVB and five-partition layout; E3099 unconditional
   installer abort stays enabled.
 
-**Status: BOOTLOADER REVISION / UNLOCK SAFETY = HARD BLOCKER.**
+**Status: GZH3-ON-RETAINED-I BOOT/AVB COMPATIBILITY = HARD BLOCKER.**
+
+**Narrow correction (2026-10-13):** Samsung's official S901B Android 16
+release `S901BXXUIGYI7` uses **bootloader binary I (18)**, the same RP
+number as TachyonOS FYI3. Its CSC is `S901BOXMIGYI7`; Samsung's
+release history identifies it as One UI 8 / Android 16. Thus Android 16
+does **not** intrinsically require moving to GZH3's O (24). The correct
+technical question is whether GZH3 boot/vendor can operate with the
+*existing* unlocked I bootloader, and whether its companion CP, AVB
+and security firmware remain compatible. Binary revision equality
+alone is not evidence that FYI3/GYI7 firmware binaries are interchangeable.
+Use GYI7 as a reference for the compatible Android 16 firmware generation;
+DO NOT flash its stock BL or any stock One UI 8 firmware to this unlocked
+development device as an investigative shortcut.
+
+Primary sources:
+- https://doc.samsungmobile.com/SM-S901B/021718220304/eng.html
+- https://samfirm.shop/build/S901BXXUIGYI7
+- https://s-update.samsungvn.com/devices/SM-S901B
 Do NOT instruct stock GZH3 preflash or direct current-device A15
 TWRP install in the absence of those qualifications.
