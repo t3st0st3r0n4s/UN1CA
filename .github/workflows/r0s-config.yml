@@ -19,6 +19,7 @@ on:
       - 'scripts/r0s/audit_recovery_candidates.sh'
       - 'scripts/r0s/inspect_twrp_gzh3_userspace.py'
       - 'scripts/r0s/audit_recovery_runtime_abi.py'
+      - 'scripts/r0s/audit_install_prerequisites.py'
       - 'scripts/r0s/audit_recovery_ota_trust.sh'
       - 'scripts/r0s/check_recovery_ota_certificates.py'
       - 'scripts/ci/test_r0s_recovery_ota_certificates.py'
@@ -65,6 +66,9 @@ jobs:
       - name: Syntax-check the read-only native recovery inspector
         shell: bash
         run: bash -n scripts/r0s/inspect_recovery_abi.sh && bash -n scripts/r0s/audit_stock_recovery_updater.sh && bash -n scripts/r0s/audit_recovery_ota_trust.sh && bash -n scripts/r0s/audit_recovery_candidates.sh && python3 scripts/r0s/inspect_twrp_gzh3_userspace.py --self-test && python3 scripts/r0s/audit_recovery_runtime_abi.py --self-test
+      - name: Test S901B FYI3 to GZH3 installation contract syntax (synthetic only)
+        shell: bash
+        run: python3 scripts/r0s/audit_install_prerequisites.py --self-test
       - name: Test X.509 OTA recovery trust comparator (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_recovery_ota_certificates.py
