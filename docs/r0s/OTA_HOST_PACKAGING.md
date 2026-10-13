@@ -41,3 +41,28 @@ The result is **HOST-ONLY / NOT FLASH APPROVED**. E3099 prevents
 installation; TWRP runtime compatibility and GZH3 boot/AVB behaviour
 with the retained TachyonOS FYI3 unlocked bootloader remain unproven.
 Rollback to TachyonOS is a separate recovery option, not part of UN1CA.
+
+## Actual host full-OTA result — 2026-10-13
+
+The developer ran `scripts/r0s/build_full_ota_guarded.py --build`
+after its precheck passed. The wrapper invoked the standard UN1CA
+`scripts/build_flashable_zip.sh` and `scripts/internal/build_full_ota_zip.sh`
+from the existing pinned GZH3 target-files archive; no ROM rebuild.
+All five images were converted to block OTA dat payloads and compressed;
+updater-script and OTA metadata generated; the ZIP signed.
+
+Retained local host artifact (not uploaded to GitHub):
+
+- `out/UN1CA_r0s_A16_GZH3_E3099_BLOCKED_full_ota.zip`
+- Size: `6087623915` bytes (5.67 GiB).
+- SHA-256: `4200d8239a5243021cdcf7396b0bab4f0dda944f5dc4e1893ffd189c4df9e022`
+- Source target-files SHA-256: `6c20d013b7f3087e08fe453d5eb10fcf9411107898c98705b6f8b30347a9b8fd`.
+- Real output inspector: `UN1CA single-ZIP layout and E3099-FIRST updater checks PASS`.
+- Five logical partitions, boot/vendor_boot/dtbo included; no BL, CP,
+  recovery or vbmeta payload. Full ZIP CRC passed (builder output).
+- Stage: **HOST OTA PASS / BOARD UNTESTED / E3099 INSTALL ABORT ACTIVE**.
+
+**Next development work is not another build.** The unchanged existing
+FYI3 bootloader and TWRP must be qualified for this actual UN1CA legacy
+block OTA and GZH3 kernel/runtime. No flash should be attempted using
+this E3099-locked ZIP; changing the bootloader is excluded by policy.
