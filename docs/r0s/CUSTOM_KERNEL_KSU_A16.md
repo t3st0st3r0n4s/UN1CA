@@ -17,10 +17,16 @@ To start the REAL host build on Ubuntu (no phone access):
   bash scripts/r0s/build_extremekrnl_a16.sh --prepare
   bash scripts/r0s/build_extremekrnl_a16.sh --build
 
+Already ran --prepare using the earlier candidate directory name?
+Move the checkout rather than re-cloning ~1 GiB of Git history:
+  test ! -e out/kernel_tmp-exynos2200
+  mv out/kernel_candidate_extreme_a16 out/kernel_tmp-exynos2200
+The canonical location matches TachyonOS's old out/kernel_tmp-exynos2200.
+
 Default --check makes no downloads. Prepare clones the large kernel
 source and pinned submodules. Build invokes the existing upstream
 kernel compile and produces boot.img, vendor_boot.img, dtbo.img
-and modules, isolated under out/kernel_candidate_extreme_a16/.
+and modules, isolated under out/kernel_tmp-exynos2200/.
 At least 24 GiB before initial clone and 12 GiB before compilation
 are enforced floors; peak disk use may be significantly higher.
 Compiler may download clang r614150. Do not delete original ROM or
