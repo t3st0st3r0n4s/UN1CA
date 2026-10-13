@@ -87,3 +87,21 @@ invalidating its native GZH3/PROCA-only audit. Do not overwrite the existing
 to promote this candidate. Prepare separate custom-kernel integration gates.
 The existing `E3099` safety abort, original FYI3 bootloader, existing phone
 installation and recovery remain unchanged.
+
+### Next, read-only artifact inspection
+
+The host build above is not a ROM integration pass. Before any custom kernel
+patch-module promotion, run:
+
+```bash
+cd ~/android/UN1CA
+bash scripts/r0s/audit_extremekrnl_a16_candidate.sh
+```
+
+This reads existing custom `boot.img`, `vendor_boot.img`, `dtbo.img`,
+KernelSU build configuration, five vendor modules, their dependencies, and
+the actual vendor_boot ramdisk fragments, while checking the native GZH3
+workdir and installer E3099 are still present. It modifies none of these.
+The GitHub CI `--self-test` is syntax-only; only the user's host run can
+confirm the actual image and module layout. A PASS is not an ABI, Android
+SELinux, bootloader-compatibility, full OTA, or board PASS.
