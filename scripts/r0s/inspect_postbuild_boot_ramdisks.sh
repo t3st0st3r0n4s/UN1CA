@@ -13,7 +13,7 @@ die() { printf 'r0s POSTBUILD BOOT REVIEW BLOCKED: %s\n' "$*" >&2; exit 2; }
 [[ "$(cat "$FW/.extracted")" == "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3" ]] ||
     die 'wrong source firmware'
 export PATH="$ROOT/out/tools/bin:$PATH"
-for cmd in unpack_bootimg sha256sum cpio lz4 gzip file cmp diff awk; do
+for cmd in unpack_bootimg sha256sum cpio lz4 gzip file cmp diff awk python3; do
     command -v "$cmd" >/dev/null || die "required tool missing: $cmd"
 done
 grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
@@ -47,6 +47,10 @@ if cmp -s "$TMP/stock/boot/kernel" "$TMP/work/boot/kernel"; then
 else
     echo 'boot_kernel=MODIFIED_FROM_STOCK (needs PROCA change review and ABI check)'
 fi
+printf '\n===== EXACT UPSTREAM PROCA DELTA =====\n'
+python3 "$ROOT/scripts/r0s/check_proca_kernel_delta.py" \
+    "$TMP/stock/boot/kernel" "$TMP/work/boot/kernel" ||
+    die 'unexpected stock-to-work kernel bytes outside exact upstream PROCA patch'
 printf '\n===== STOCK vs MODIFIED VENDOR_BOOT HEADER =====\n'
 unpack_one stock vendor_boot "$FW/kernel/vendor_boot.img"
 unpack_one work vendor_boot "$WORK/kernel/vendor_boot.img"

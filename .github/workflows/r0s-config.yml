@@ -20,6 +20,8 @@ on:
       - 'scripts/ci/test_r0s_ota_op_list.sh'
       - 'scripts/r0s/inspect_built_workdir.sh'
       - 'scripts/r0s/inspect_postbuild_boot_ramdisks.sh'
+      - 'scripts/r0s/check_proca_kernel_delta.py'
+      - 'scripts/ci/test_r0s_proca_kernel_delta.py'
       - 'scripts/r0s/check_target_files_zip.py'
       - 'scripts/ci/test_r0s_target_files_zip.py'
       - 'scripts/r0s/check_unpacked_boot_header.sh'
@@ -66,6 +68,9 @@ jobs:
       - name: Syntax-check real-stock and workdir ramdisk comparison
         shell: bash
         run: bash -n scripts/r0s/inspect_postbuild_boot_ramdisks.sh
+      - name: Test exact native A16 kernel PROCA delta (synthetic only)
+        shell: bash
+        run: python3 scripts/ci/test_r0s_proca_kernel_delta.py
       - name: Test native GZH3 target-files ZIP checker (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_target_files_zip.py
