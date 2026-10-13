@@ -55,14 +55,21 @@ do
     printf 'ZIP_CRC_PASS %s\n' "$rel"
 done
 
-printf '\n===== NATIVE KERNEL MODULES PRESERVED =====\n'
-for mod in fingerprint.ko fingerprint_sysfs.ko input_booster_lkm.ko sec_debug_coredump.ko wlan.ko; do
-    a="$FW/vendor_dlkm/lib/modules/$mod"
-    b="$WORK/vendor_dlkm/lib/modules/$mod"
-    [[ -s "$a" && -s "$b" ]] || fail "missing module $mod"
-    cmp -s "$a" "$b" || fail "stock module was modified: $mod"
-    sha256sum "$b"
-done
+printf '\n===== KERNEL MODULE PROVENANCE =====\n'
+if [[ -f "$WORK/kernel/.r0s_extremekrnl_a16_integrated" ]]; then
+    echo 'KERNEL_MODE=GZH3_EXTREMEKRNL_A16_KSU'
+    python3 "$ROOT/scripts/r0s/integrate_extremekrnl_a16.py" --verify ||
+        fail 'custom kernel workdir provenance verification failed'
+else
+    echo 'KERNEL_MODE=NATIVE_GZH3_PROCA_ONLY'
+    for mod in fingerprint.ko fingerprint_sysfs.ko input_booster_lkm.ko sec_debug_coredump.ko wlan.ko; do
+        a="$FW/vendor_dlkm/lib/modules/$mod"
+        b="$WORK/vendor_dlkm/lib/modules/$mod"
+        [[ -s "$a" && -s "$b" ]] || fail "missing module $mod"
+        cmp -s "$a" "$b" || fail "stock module was modified: $mod"
+        sha256sum "$b"
+    done
+fi
 
 printf '\n===== WORKDIR BOOT-CHAIN HEADERS / SIZE CAPS =====\n'
 export PATH="$ROOT/out/tools/bin:$PATH"
