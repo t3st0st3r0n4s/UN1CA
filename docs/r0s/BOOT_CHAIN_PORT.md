@@ -92,3 +92,65 @@ Stock and work `vendor_boot` both have v4 headers and exactly the same vendor cm
 UN1CA's active source at `unica/patches/proca/customize.sh` modifies decompressed ARM64 kernel bytes at offset 40 (if not zero/prepatched) and replaces one exact PROCA string literal with a same-length literal. The new `scripts/r0s/check_proca_kernel_delta.py` implements only those two transformations and compares the **entire decompressed** stock and rebuilt kernel byte-for-byte against the expected result. Any unrelated change, unexpected length or ambiguous duplicate literal blocks. The existing postbuild ramdisk inspection now invokes this exact-delta check. Synthetic tests exercise raw/gzip positive examples and corruption, patch omission and other negative cases.
 
 The **real host exact-delta rerun remains pending**. Passing the new byte-level gate would validate patch scope only, not kernel module ABI, runtime SELinux, AVB, bootability or BOARD. Keep installer `E3099` active.
+
+## CRITICAL: A15 FYI3 -> GZH3 A16 prerequisite / bootloader rollback gate (2026-10-13)
+
+**This project MUST NOT recommend flashing full stock GZH3 first or
+flashing the UN1CA ZIP directly from FYI3 without independent device and
+bootchain qualification.** The target files and kernel/module audits are
+HOST-only and do not establish either upgrade path.
+
+Current phone is on rooted/unlocked A15 FYI3 firmware
+`S901BXXSIFYI3` (Samsung RP/SW REV **I = 18**), with current A15
+custom recovery. The extracted GZH3 A16 firmware is
+`S901BXXSOGZH3` (Samsung RP/SW REV **O = 24**); the switch is a
+**six-revision antirollback jump**. Confirm the exact live device
+Download-mode RP value before any attempted flash.
+Public firmware build references:
+https://samfirm.shop/build/S901BXXSIFYI3 and
+https://samfirm.shop/fr/build/S901BXXSOGZH3.
+Samsung rollback protection may prevent restoring FYI3 BL once
+GZH3 BL is installed.
+
+UN1CA upstream expressly warns that **official One UI 8 removed the
+ability to unlock Samsung bootloaders** and reverting to older One UI
+can become impossible:
+https://github.com/salvogiangri/UN1CA/discussions/129.
+The impact on an *already-unlocked* S901B after an O-revision BL flash
+is **NOT verified**; retaining the unlocked state must never be assumed.
+A stock One UI 8 full BL/AP/CP/CSC flash could therefore destroy
+the essential precondition for this custom ROM project.
+
+UN1CA's install guide
+https://github.com/salvogiangri/UN1CA/discussions/130
+requires custom recovery and a device-specific flashable ZIP, but
+**does not universally require booting full stock A16 first**.
+Its installation FAQ
+https://github.com/salvogiangri/UN1CA/discussions/629
+notes that mismatched bootloader revisions may require a specific
+firmware before installation. For *our* native-GZH3 based port
+there is no validated compatibility proof that FYI3's A15 BL
+can start GZH3-derived A16 boot / vendor_boot / dtbo + kernel;
+equally, there is no validated safe procedure to use GZH3 BL while
+preserving bootloader unlock.
+
+**Mandatory promotion decisions:**
+
+- Preserve device's known-working FYI3 A15 installation, bootloader
+  unlock and backups; no production BL or GZH3 stock flash.
+- Reconcile FYI3 live Download-mode bootloader RP and security state
+  with exact FYI3/GZH3 BL, modem, vbmeta, and boot partition deltas.
+- Determine whether A16 GZH3 boot/kernel/vendor can run with a
+  retained unlocked A15 bootloader. Requires device-specific evidence,
+  not upstream assumptions or a simple old-recovery ELF check.
+- If A16 requires later RP-O bootloader, determine and validate
+  bootloader-unlock survivability and recovery/rollback safety **before**
+  writing any permanent bootloader component. If not achievable,
+  this ROM cannot be approved for physical install as designed.
+- Independently qualify custom recovery's actual block OTA install
+  protocol, AVB and five-partition layout; E3099 unconditional
+  installer abort stays enabled.
+
+**Status: BOOTLOADER REVISION / UNLOCK SAFETY = HARD BLOCKER.**
+Do NOT instruct stock GZH3 preflash or direct current-device A15
+TWRP install in the absence of those qualifications.
