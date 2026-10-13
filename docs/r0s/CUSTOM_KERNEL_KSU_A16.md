@@ -443,8 +443,13 @@ and `dtbo.img` images from the already built target-files archive.
 It still writes **no** `vendor_dlkm` payload.
 
 The resulting ZIP uses the actual existing ExtremeKRNL compiler's
-filename, `ExtremeKRNL-v2.5_r0s_KSU_<DD-MM-YYYY_HH-MM-SS>.zip`;
-the output is placed under UN1CA's `out/` while the original kernel
+filename, inserting `KSUNext-<version>` immediately after `r0s_`:
+`ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.1_<DD-MM-YYYY_HH-MM-SS>.zip`
+for the currently pinned source. The version is discovered from the
+**actual KernelSU-Next Git release tag at the build's recorded commit**,
+not hard-coded or inferred from the manager APK. If that version cannot
+be verified uniquely, packaging stops rather than guessing.
+The output is placed under UN1CA's `out/` while the original kernel
 compiler ZIP stays under `out/kernel_tmp-exynos2200/build/out/r0s/`.
 This is a kernel update for a **matching installed UN1CA A16** ROM,
 not a substitute for the full A15-to-A16 ROM installation.

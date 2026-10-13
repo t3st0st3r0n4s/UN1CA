@@ -77,16 +77,49 @@ def blob(path):
     return h.hexdigest()
 
 
+def native_name_with_ksu_version(name, release):
+    """Preserve upstream kernel/version/date, with a source-derived KSU tag."""
+    need(re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?", release)
+         is not None, "invalid KernelSU Next release tag")
+    match = re.fullmatch(
+        r"(ExtremeKRNL-[A-Za-z0-9.+-]+)_r0s_KSU_"
+        r"(\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2})\.zip", name)
+    need(match is not None, "unexpected upstream ExtremeKRNL ZIP name")
+    return (match.group(1) + "_r0s_KSUNext-" + release + "_" +
+            match.group(2) + ".zip")
+
+
+def ksu_release():
+    """Discover the release tag at the exact KSU commit used by this build."""
+    record = KERNEL / "build/out/r0s/.r0s_a16_kernel_host_pass"
+    need(record.is_file(), "A16 kernel build provenance record missing")
+    entries = dict(re.findall(r"^([a-z_]+)=([^\r\n]*)$", record.read_text(), re.M))
+    need(entries.get("ksunext") == KSU_PIN,
+         "built kernel KernelSU commit differs from package source pin")
+    checkout = KERNEL / "KernelSU-Next"
+    head = subprocess.run(["git", "-C", str(checkout), "rev-parse", "HEAD"],
+                          capture_output=True, text=True)
+    need(head.returncode == 0 and head.stdout.strip() == KSU_PIN,
+         "KernelSU Next source checkout differs from the compiled build")
+    tags = subprocess.run(["git", "-C", str(checkout), "tag", "--points-at", "HEAD"],
+                          capture_output=True, text=True)
+    need(tags.returncode == 0, "cannot inspect KernelSU Next release tags")
+    releases = [tag for tag in tags.stdout.splitlines()
+                if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?",
+                                tag)]
+    need(len(releases) == 1,
+         "the built KernelSU commit must have exactly one release tag")
+    return releases[0]
+
+
 def output_path():
-    # Use the existing native ExtremeKRNL build name, without stage labels.
+    # Use the original kernel build ZIP name; obtain KSU version from its
+    # pinned source tag, not a hard-coded string or manager APK name.
     directory = KERNEL / "build/out/r0s"
-    matches = sorted(directory.glob("ExtremeKRNL-v2.5_r0s_KSU_*.zip"))
+    matches = sorted(directory.glob("ExtremeKRNL-*_r0s_KSU_*.zip"))
     need(len(matches) == 1, "need exactly one upstream A16 ExtremeKRNL KSU ZIP")
-    name = matches[0].name
-    need(re.fullmatch(
-        r"ExtremeKRNL-v2\.5_r0s_KSU_\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2}\.zip",
-        name) is not None, "unexpected upstream ExtremeKRNL ZIP name")
-    return ROOT / "out" / name
+    return ROOT / "out" / native_name_with_ksu_version(
+        matches[0].name, ksu_release())
 
 
 def source_script():
@@ -220,6 +253,7 @@ def build(expected):
         "status": "PACKAGED",
         "device": "SM-S901B", "android_api": 36,
         "kernel_source": KERNEL_PIN, "ksunext_source": KSU_PIN,
+        "ksunext_release": ksu_release(),
         "target_files_sha256": expected,
         "kernel_zip_sha256": digest(output),
         "format": "original_TachyonOS_ExtremeKRNL_three_image_updater",
@@ -243,6 +277,25 @@ def self_test():
          "bad provenance pin")
     need(b"E3099" not in source_script() if UPDATER_SOURCE.is_file()
          else True, "E3099 was added to the kernel updater")
+    # Pure naming fixtures: CI must not need an actual kernel checkout.
+    need(native_name_with_ksu_version(
+        "ExtremeKRNL-v2.5_r0s_KSU_13-10-2026_21-00-00.zip",
+        "v3.4.1") ==
+        "ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.1_13-10-2026_21-00-00.zip",
+        "source-version filename formatting failed")
+    need(native_name_with_ksu_version(
+        "ExtremeKRNL-v3.0_r0s_KSU_14-10-2026_02-03-04.zip",
+        "v4.0.0") ==
+        "ExtremeKRNL-v3.0_r0s_KSUNext-v4.0.0_14-10-2026_02-03-04.zip",
+        "filename was incorrectly pinned to a specific KSU version")
+    for bad in ("v3.4.1/other", "3.4.1", ""):
+        try:
+            native_name_with_ksu_version(
+                "ExtremeKRNL-v2.5_r0s_KSU_13-10-2026_21-00-00.zip", bad)
+        except Blocked:
+            pass
+        else:
+            raise AssertionError("invalid KernelSU tag accepted: " + bad)
     print("TachyonOS parity ZIP fixture PASS — 3 images, same recovery installer")
     print("No kernel source/ROM/recovery build or device writes")
 
