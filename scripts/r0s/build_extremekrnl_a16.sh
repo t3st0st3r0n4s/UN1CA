@@ -3,7 +3,8 @@
 # No ROM modifications, no flashing, no device access, no E3099 removal.
 set -Eeuo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SRC="$ROOT/out/kernel_candidate_extreme_a16"
+SRC="$ROOT/out/kernel_tmp-exynos2200"
+LEGACY_SRC="$ROOT/out/kernel_candidate_extreme_a16"
 ART="$SRC/build/out/r0s"
 REMOTE="https://github.com/milxnaq/android_kernel_samsung_s5e9925.git"
 KERNEL_PIN="78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
@@ -45,6 +46,11 @@ if [[ "$MODE" == --check ]]; then
   echo 'CHECK ONLY — no download or build'
   if (( FREE < 24 )); then echo 'CAPACITY WARNING: below 24 GiB staging floor (not measured peak)'; fi
   exit 0
+fi
+# Never download a duplicate multi-gigabyte kernel checkout when the previously
+# prepared candidate is still at its original path. Move it explicitly first.
+if [[ ! -e "$SRC" && -d "$LEGACY_SRC/.git" ]]; then
+  die "existing prepared checkout at $LEGACY_SRC; move it to $SRC before prepare/build (no re-clone)"
 fi
 if [[ ! -d "$SRC/.git" ]]; then
   (( FREE >= 24 )) || die 'at least 24 GiB free requested for fresh clone'
