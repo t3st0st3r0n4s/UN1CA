@@ -164,3 +164,33 @@ and checks all five packaged vendor modules byte-for-byte against stock and
 workdir, including native modinfo vermagic. Host execution is pending.
 Even PASS is provenance, **not full kernel-module ABI** (exported CRC/KMI
 or physical loadability). E3099 remains active; no OTA or flashing.
+
+## Real packaged kernel and GZH3 module provenance PASS (2026-10-13)
+
+Host invocation of `audit_packaged_kernel_modules.sh` succeeded against the pinned
+SHA-256 `6c20d013b7f3087e08fe453d5eb10fcf9411107898c98705b6f8b30347a9b8fd`.
+Packaged embedded-kernel SHA-256 `dd509289798cfa756c649e77179d758101cddae6273a649be7835ae34080ca4a`
+exactly matched the completed workdir. Against native GZH3 kernel SHA-256
+`1a3481f961f2acb93b2ce556c1179d3842359dd00782d9f566b305687a0dee39`,
+the only accepted decompressed binary differences were ARM64 header offset 40
+and the same-length PROCA string replacement at offset 26891441.
+
+The archived vendor_dlkm sparse EROFS filesystem was extracted without mounting.
+All five packaged modules—fingerprint, fingerprint_sysfs, input_booster_lkm,
+sec_debug_coredump, wlan—were byte-identical to both extracted native stock
+and completed workdir, and their modinfo vermagic matched pinned stock GZH3.
+**PACKAGED KERNEL / MODULE PROVENANCE PRECHECK PASS.** No unexpected kernel
+or vendor module ABI changes were found relative to native GZH3, but this
+does not execute the modules or prove runtime KMI/CRC resolution.
+
+## Native stock recovery / UN1CA updater static compatibility inventory
+
+Next gated step: `scripts/r0s/audit_stock_recovery_updater.sh` (read-only).
+It checks the exact stock GZH3 recovery image hash, inventories its LZ4
+ramdisk and bundled native recovery executable, inspects the upstream
+deprecated-OTA updater ELF architecture and dependencies, lists candidate
+stock recovery trust-anchor paths, and prints the development OTA certificate
+fingerprint. This provides **evidence**, not confirmation that Samsung recovery
+accepts a test-signed UN1CA OTA or can invoke this updater. Static inventory
+needs to run on the actual host; CI performs syntax checks only. No full OTA
+is authorised, and the E3099 abort must remain active.
