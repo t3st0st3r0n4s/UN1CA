@@ -28,6 +28,7 @@ on:
       - 'scripts/r0s/integrate_extremekrnl_a16.py'
       - 'scripts/r0s/install_ksunext_manager_a16.py'
       - 'scripts/r0s/package_extremekrnl_update_a16.py'
+      - 'scripts/r0s/audit_tachyon_twrp_reuse.py'
       - 'staging/r0s/ksunext/**'
       - 'target/r0s/late_patches/**'
       - 'scripts/make_rom.sh'
@@ -100,7 +101,7 @@ jobs:
         run: python3 scripts/r0s/compare_extremekrnl_gzh3_a16.py --self-test
       - name: Check pinned A16 hybrid builder and late integration fixtures (synthetic only)
         shell: bash
-        run: python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test && python3 scripts/r0s/integrate_extremekrnl_a16.py --self-test && python3 scripts/r0s/install_ksunext_manager_a16.py --self-test && python3 scripts/r0s/package_extremekrnl_update_a16.py self-test && bash -n scripts/make_rom.sh && bash -n target/r0s/late_patches/extremekrnl/customize.sh
+        run: python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test && python3 scripts/r0s/integrate_extremekrnl_a16.py --self-test && python3 scripts/r0s/install_ksunext_manager_a16.py --self-test && python3 scripts/r0s/package_extremekrnl_update_a16.py self-test && python3 scripts/r0s/audit_tachyon_twrp_reuse.py --self-test && python3 scripts/r0s/audit_tachyon_twrp_reuse.py --source-only && bash -n scripts/make_rom.sh && bash -n target/r0s/late_patches/extremekrnl/customize.sh
       - name: Test host-only single full OTA archive safety gate (synthetic only)
         shell: bash
         run: python3 scripts/r0s/build_full_ota_guarded.py --self-test
