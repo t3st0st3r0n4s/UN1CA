@@ -46,6 +46,8 @@ GET_WORK_DIR_HASH()
             # integration script; changes to it must invalidate the cache.
             if [[ "$TARGET_CODENAME" == "r0s" && -d "$SRC_DIR/target/r0s/late_patches/extremekrnl" ]]; then
                 printf '%s\0' "$SRC_DIR/scripts/r0s/integrate_extremekrnl_a16.py"
+                printf '%s\0' "$SRC_DIR/scripts/r0s/install_ksunext_manager_a16.py"
+                find "$SRC_DIR/staging/r0s/ksunext" -maxdepth 1 -type f -print0
             fi
         } | sort -z | xargs -0 sha1sum | sha1sum | cut -d " " -f 1
     else
