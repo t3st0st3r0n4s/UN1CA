@@ -54,8 +54,13 @@ def cpio_names(archive):
 
 
 def cpio_read(archive, entry):
-    # Exact file reads only; no extraction into the original workdir or host.
-    return run(["cpio", "-i", "--quiet", "--to-stdout", entry], input_data=archive)
+    # Archive entries may be stored as either foo or ./foo. Read either spelling,
+    # without unpacking other files onto the host.
+    blob = run(["cpio", "-i", "--quiet", "--to-stdout", entry, "./" + entry],
+               input_data=archive)
+    if not blob:
+        fail(f"cpio member missing/empty: {entry}")
+    return blob
 
 
 def fstab_types(data):
