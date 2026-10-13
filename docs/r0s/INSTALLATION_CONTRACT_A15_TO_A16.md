@@ -1,4 +1,4 @@
-# FYI3 A15 -> GZH3 A16: S901B installation contract
+# TachyonOS FYI3 A15 -> UN1CA GZH3 A16: S901B installation contract
 
 Status 2026-10-13: HOST target-files validated; PHONE BOOTCHAIN NOT QUALIFIED.
 Keep E3099 abort in target/r0s/installer/assertions.edify. NO flashing, BL
@@ -7,14 +7,14 @@ automatic downgrade recommendation.
 
 ## Firmware components and required versions
 
-| Component | Current presumed FYI3 environment | UN1CA GZH3 ROM installer action | Release requirement |
+| Component | Existing TachyonOS FYI3 baseline | UN1CA GZH3 ROM installer action | Release requirement |
 | --- | --- | --- | --- |
-| S901B model | S901B/r0s; live ADB must confirm | r0s only | exact model and unlocked Download Mode |
+| S901B model | SM-S901B/r0s proven by TachyonOS build and prior on-device work | r0s only | preserve device identity and unlocked bootloader |
 | BL bootloader / TZ | FYI3 RP I=18; confirm actual live RP | NOT INCLUDED | retained BL must demonstrably boot GZH3 kernel, OR compatible later BL proven safe with unlocked state preserved |
 | CP radio modem | existing A15 CP; live baseband pending | NOT INCLUDED | existing CP must work with GZH3 vendor RIL/IMS, or explicitly qualified CP migration |
 | vbmeta / AVB | existing patched/trusted boot configuration | NOT INCLUDED | A16 boot, dtbo, vendor_boot images actually accepted; development AVB key does not equal Samsung production trust |
-| recovery | older TWRP | NOT INCLUDED | recovery runs legacy update-binary and block dynamic-partition installer safely |
-| boot | older A15 | REPLACED: GZH3 PROCA-delta kernel | actual GZH3 normal boot, KMI/module loading |
+| recovery | Existing S901B TWRP, used for TachyonOS/kernel installation | NOT INCLUDED | validate this recovery with the legacy UN1CA block installer, not a new recovery build by default |
+| boot | TachyonOS ExtremeKRNL 5.10.238, built-in KSU Next v3.4.1, board-tested | REPLACED: GZH3 PROCA-delta kernel 5.10.237 | GZH3 normal boot, matched vendor module ABI; Android 15 kernel not directly reusable |
 | vendor_boot | older A15 | REPLACED: GZH3-derived EROFS fstab | header/init/SELinux with retained BL accepted |
 | dtbo | older A15 | REPLACED: native GZH3 | device-tree and boot firmware compatibility |
 | system | A15 | REPLACED: GZH3-derived EROFS | native 5 logical images; group_basic |
@@ -22,6 +22,34 @@ automatic downgrade recommendation.
 | product, odm, vendor_dlkm | A15 | REPLACED: GZH3-derived EROFS | packaged exact 5-image geometry, vendor module provenance |
 | userdata | encrypted FYI3 | NOT INCLUDED | complete Format Data on FIRST UN1CA installation once all gates clear |
 | EFS / sec_efs / cpefs | retained | NOT INCLUDED | maintain verified backups and exact return path |
+
+## Known TachyonOS evidence — do not restart device discovery
+
+Actual starting ROM is [TachyonOS r0s-fyi3](https://github.com/t3st0st3r0n4s/TachyonOS/tree/r0s-fyi3),
+not unmodified Samsung FYI3. Its [build and validation record](https://github.com/t3st0st3r0n4s/TachyonOS/blob/r0s-fyi3/docs/r0s-fyi3-build.md)
+specifies:
+
+- Target Samsung FYI3 `S901BXXSIFYI3/S901BOXMIFYI3/S901BXXSIFYI3/S901BXXSIFYI3`,
+  Android 15/API 35; donor software S721B BYH1. Firmware-based target,
+  with donor software changes, is not an unknown generic A15 image.
+- Kernel boot, vendor_boot, dtbo are from ExtremeKRNL pin
+  `9ac30b43ebf74a607bf778d479609ab7ccf0797b`;
+  native A15 `5.10.238-ExtremeKRNL-Nexus-2200-v1+`.
+- Built-in KernelSU Next v3.4.1 pin
+  `8f902aeb16033024143ae36cf711df902cf02fae`.
+  TachyonOS documentation reports real kernel boot, SELinux enforcing,
+  root and five kernel-module loads PASS. This is A15 evidence, not A16 evidence.
+- TWRP exists and was used to flash the working A15 kernel recovery ZIP.
+- EFS/SEC_EFS/CPEFS backups and kernel rollback evidence are already retained
+  from the TachyonOS development workflow.
+
+**Do not require re-running the generic `audit_install_prerequisites.py`
+script as a prerequisite to further engineering.** It can serve as an
+optional read-only pre-flash snapshot, but cannot establish GZH3 bootloader
+compatibility, radio firmware requirements or unlock preservation.
+The productive next research task is a focused **FYI3 vs GZH3 BL/CP/vbmeta
+and recovery-installer transition** analysis, reusing archived TachyonOS
+results instead of repeatedly discovering model/kernel/root state.
 
 ## Concrete firmware values
 
@@ -66,8 +94,11 @@ ability to boot custom images on the S901B.
 
 - G0 SOURCE/HOST PASS: Native GZH3 5-way super, boot-chain images,
   ZIP CRC, module provenance, packaging capacity and E3099 abort.
-- G1 LIVE BASELINE PENDING: ADB properties of bootloader, modem,
-  sdk, model, vbmeta/unlock; Download Mode OEM LOCK and RP SWREV.
+- G1 BASELINE ALREADY ESTABLISHED FROM TACHYONOS: model, Android 15 API 35,
+  FYI3 target pin, rooted/unlocked development workflow, recovery and
+  v3.4.1 kernel boot/module load are documented and previously tested.
+  Only the exact currently installed low-level BL/CP revisions and
+  Download Mode OEM LOCK/RP state merit a fresh pre-flash cross-check.
 - G2 BOOTLOADER HARD BLOCK: real GZH3 boot-chain compatibility with
   retained A15 BL OR safe unlock-persistent updated BL, measured.
 - G3 CP AND AVB HARD BLOCK: native GZH3 vendor RIL/modem operation,
@@ -96,3 +127,22 @@ https://github.com/salvogiangri/UN1CA/discussions/130
 https://github.com/salvogiangri/UN1CA/discussions/629
 https://github.com/salvogiangri/UN1CA/discussions/132
 https://doc.samsungmobile.com/SM-S901B/021718220304/eng.html
+
+## Implementation priority — firmware transition, not generic property audits
+
+1. Compare known TachyonOS/FYI3 original BL, CP, vbmeta and recovery
+   provenance with native S901B GZH3 release images and the new
+   UN1CA ZIP's write set. Identify whether A16 kernel and TrustZone
+   demand a BL upgrade on S901B.
+2. Confirm the retained-I bootloader / native GZH3 startup combination
+   using device-specific technical evidence; do not infer compatibility
+   from a host parser. If no reliable safe validation route is available,
+   keep deployment blocked and investigate firmware-compatible adaptation.
+3. Independently review old TWRP legacy OTA block protocol and
+   GZH3 super partition op list without modifying the device.
+4. Only then decide whether to require selected firmware updates,
+   a modified installation package or an updated recovery.
+
+The previously created generic ADB baseline audit is optional. It
+must not be portrayed as a new requirement to identify a phone we
+already ported and qualified under TachyonOS A15.
