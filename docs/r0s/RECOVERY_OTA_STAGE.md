@@ -293,3 +293,46 @@ kernel/ramdisk hashes, enforces stock/workdir payload equivalence, compares
 candidate TWRP kernel against native GZH3 and inventories recovery fstabs.
 Synthetic CI runs syntax only; **real host candidate audit pending**.
 No candidate is authorised for GZH3 flashing, and `E3099` remains active.
+
+## Actual GZH3 stock vs older TWRP static recovery comparison (2026-10-13)
+
+Real host invocation of `audit_recovery_candidates.sh` completed.
+TWRP archive `S901B_twrp_logo_vbmeta.tar` SHA-256
+`f82b9612d92786971609895facb703906744d9a617e673f1cd148e671735d830`
+was byte-identical between the two local copies and contains
+`recovery.img`, `up_param.bin` and `vbmeta.img`.
+Its `recovery.img` is 67153936 bytes (SHA-256
+`3abeda14db0311aca2fd1898c18e7270105ec2c9c57d38bed6ab977e49a28577`).
+
+Stock GZH3 recovery and workdir-derived recovery have **byte-identical**
+embedded kernel SHA-256
+`1a3481f961f2acb93b2ce556c1179d3842359dd00782d9f566b305687a0dee39`
+and LZ4 ramdisk SHA-256
+`1d7f5d7c0c2727436663ba5203dbf8a57b987db36fbaf4d0f2e1ef0b1d54c59c`.
+Stock recovery patch header says August 2026.
+The older TWRP candidate kernel SHA-256 is
+`0030075e2e70eeeb878a2eba85f321a90a21dc2efe746e7caa742ecf7ab73147`,
+**not equal** to stock GZH3, and its boot header patch field is December
+2025. Both use recovery boot header v2, but that alone is insufficient.
+TWRP ramdisk is gzip, stock is LZ4; the TWRP binary is present.
+
+Stock `recovery.fstab` includes all native logical names and EROFS system;
+the old TWRP `recovery.fstab` has EROFS for system but shows only f2fs
+for vendor/product/odm and has vendor_dlkm **commented out**.
+Its commented system_ext is consistent with no separate GZH3 super partition.
+A native GZH3 EROFS-aware recovery would need to qualify mount rules for
+all five actual logical images. This does not establish what other fstabs
+or installer paths may exist in the TWRP userspace.
+
+**Decision: old TWRP TAR is NOT GZH3 flash-qualified.** Do not flash
+or simply transplant its old kernel. Work toward GZH3-aligned recovery
+kernel and properly ported recovery userspace/fstabs with static checks,
+followed by controlled physical recovery verification. A historical
+public Exynos 2200 TWRP tree exists but is Android 12.1 based and
+documents decryption limitations; it is not a native GZH3 release.
+
+New `scripts/r0s/inspect_twrp_gzh3_userspace.py` provides read-only,
+sha256-pinned TWRP ramdisk fstab coverage and userspace ELF inventory.
+Synthetic fstab fixtures can be run with `--self-test`; actual-host
+execution remains pending. Retain E3099 and preserve the validated
+target-files ZIP and firmware extraction.
