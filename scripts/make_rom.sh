@@ -40,8 +40,14 @@ BUILD_APKS()
 GET_WORK_DIR_HASH()
 {
     if [ "${TARGET_PLATFORM//none/}" ] && [ -d "$SRC_DIR/platform/$TARGET_PLATFORM" ]; then
-        find "$SRC_DIR/unica" "$SRC_DIR/platform/$TARGET_PLATFORM" "$SRC_DIR/target/$TARGET_CODENAME" -type f -print0 | \
-            sort -z | xargs -0 sha1sum | sha1sum | cut -d " " -f 1
+        {
+            find "$SRC_DIR/unica" "$SRC_DIR/platform/$TARGET_PLATFORM" "$SRC_DIR/target/$TARGET_CODENAME" -type f -print0
+            # The target late module delegates to this out-of-tree Python
+            # integration script; changes to it must invalidate the cache.
+            if [[ "$TARGET_CODENAME" == "r0s" && -d "$SRC_DIR/target/r0s/late_patches/extremekrnl" ]]; then
+                printf '%s\0' "$SRC_DIR/scripts/r0s/integrate_extremekrnl_a16.py"
+            fi
+        } | sort -z | xargs -0 sha1sum | sha1sum | cut -d " " -f 1
     else
         find "$SRC_DIR/unica" "$SRC_DIR/target/$TARGET_CODENAME" -type f -print0 | \
             sort -z | xargs -0 sha1sum | sha1sum | cut -d " " -f 1
