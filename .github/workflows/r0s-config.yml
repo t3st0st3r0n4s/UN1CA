@@ -21,6 +21,8 @@ on:
       - 'scripts/r0s/audit_recovery_runtime_abi.py'
       - 'scripts/r0s/audit_install_prerequisites.py'
       - 'scripts/r0s/build_full_ota_guarded.py'
+      - 'scripts/r0s/build_extremekrnl_a16.sh'
+      - 'docs/r0s/CUSTOM_KERNEL_KSU_A16.md'
       - 'scripts/r0s/make_twrp_abort_probe.py'
       - 'scripts/r0s/check_tachyon_rollback_zip.py'
       - 'scripts/r0s/audit_recovery_ota_trust.sh'
@@ -78,6 +80,9 @@ jobs:
       - name: Test actual-OTA binary to existing TWRP static-ABI inspector (synthetic only)
         shell: bash
         run: python3 scripts/r0s/audit_ota_updater_twrp.py --self-test
+      - name: Test A16 pinned custom kernel and KernelSU preparation (no clone)
+        shell: bash
+        run: bash scripts/r0s/build_extremekrnl_a16.sh --self-test
       - name: Test host-only single full OTA archive safety gate (synthetic only)
         shell: bash
         run: python3 scripts/r0s/build_full_ota_guarded.py --self-test
