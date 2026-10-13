@@ -1,0 +1,6 @@
+id=extremekrnl_a16_r0s
+name=ExtremeKRNL Android 16 + KernelSU Next (GZH3 hybrid)
+author=UN1CA r0s port
+version=1.0
+versionCode=1
+description=Apply verified GZH3 EROFS-preserving hybrid kernel after ROM filesystem and PROCA patches; host-only development.
