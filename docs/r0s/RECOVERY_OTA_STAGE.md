@@ -336,3 +336,34 @@ sha256-pinned TWRP ramdisk fstab coverage and userspace ELF inventory.
 Synthetic fstab fixtures can be run with `--self-test`; actual-host
 execution remains pending. Retain E3099 and preserve the validated
 target-files ZIP and firmware extraction.
+
+## Older TWRP Android 16 EROFS / binary userspace real-host audit (2026-10-13)
+
+The user ran `inspect_twrp_gzh3_userspace.py --self-test`:
+5 synthetic tests PASS. The genuine hash-pinned older TWRP archive reported
+`native_five_partition_erofs_coverage=1/5`: system had an EROFS entry,
+vendor/product/odm were f2fs-only, and vendor_dlkm had no active fstab entry.
+No separate system_ext was active. This is a real fstab coverage **BLOCKED**
+result, not a failure of the inspector.
+
+The TWRP userspace executable `system/bin/twrp` has SHA-256
+`e98dbb299222e8008aaa275455ca6a94cabf0b19aa544d93ec6afc8499a090b1`.
+It is a dynamically linked AArch64 ELF marked for Android 32. No dynamic
+partition or EROFS string hints were printed by that specific scan; that
+absence is not proof of unsupported functionality. Older TWRP kernel remains
+different from native GZH3; do not swap kernels and assume boot support.
+
+New `scripts/r0s/audit_recovery_runtime_abi.py` performs the **next**
+read-only userspace study. It compares ELF PT_INTERP/DT_NEEDED dependencies
+of the pinned stock GZH3 `system/bin/recovery` against TWRP `system/bin/twrp`
+and inventories which direct dependencies occur in each recovery ramdisk.
+It streams a single pinned TAR member and parses both recovery ramdisks in
+memory; no partitions or persistent images are created or mounted.
+CI runs synthetic cpio parser/negative fixtures only. Host execution is
+still pending. Absence of a library in a ramdisk does not establish runtime
+absence from all possible mounted filesystems.
+
+Current disposition: **old TWRP GZH3 recovery/userspace NOT QUALIFIED**.
+Review direct dependencies, linker, fstab, first-stage init/SELinux and
+GZH3-aligned recovery source before building any candidate. Preserve
+stock GZH3 extraction, completed target-files ZIP and E3099 installer lock.
