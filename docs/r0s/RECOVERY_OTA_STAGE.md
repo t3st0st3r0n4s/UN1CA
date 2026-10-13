@@ -367,3 +367,46 @@ Current disposition: **old TWRP GZH3 recovery/userspace NOT QUALIFIED**.
 Review direct dependencies, linker, fstab, first-stage init/SELinux and
 GZH3-aligned recovery source before building any candidate. Preserve
 stock GZH3 extraction, completed target-files ZIP and E3099 installer lock.
+
+## Correct install-method distinction: UN1CA upstream supports custom recovery ZIP (2026-10-13)
+
+Authoritative upstream installation guide:
+https://github.com/salvogiangri/UN1CA/discussions/130
+states that a **custom recovery**, e.g. TWRP or OrangeFox, is UN1CA's
+primary/only supported **initial install** method. It offers either
+recovery UI ZIP install or recovery's ADB sideload. The upstream updater
+guide https://github.com/salvogiangri/UN1CA/discussions/185 confirms
+custom-recovery installation for manual updates and provides an
+on-device UN1CA Updates app for supported upgrades. The current build
+code `scripts/build_flashable_zip.sh` and
+`scripts/internal/build_full_ota_zip.sh` assembles a **legacy recovery
+ZIP** with `META-INF/com/google/android/update-binary`, an edify
+`updater-script`, dynamic partition operation list, data payloads and
+boot-chain images. It does not install or bundle a TWRP image.
+
+**Correction of interpretation:** A TWRP recovery built for an earlier
+firmware/Android version *may still be able to flash* a newer ROM when
+booted on the presently installed device. A custom recovery's ability
+to **mount EROFS filesystems for browsing/backups** is distinct from
+the edify update-binary's ability to **map and write logical partitions
+in block mode**. Thus the real TWRP `recovery.fstab` EROFS coverage
+of 1/5 is an important recovery filesystem limitation but **does not
+alone prove that UN1CA's legacy block OTA cannot be installed with this
+TWRP**. Nor does kernel image mismatch against GZH3 necessarily block
+a recovery which boots and runs with the existing A15 boot stack.
+
+The existing S901B TWRP candidate is **not yet installation-qualified**.
+Before any OTA write, validate its actual functioning recovery session,
+legacy update-binary protocol support, dynamic partition mapping and
+`update_dynamic_partitions` / `block_image_update` behavior with
+GZH3 geometry, source/target bootloader and AVB compatibility,
+partition names and fail-safe recovery path. Inspect any format-data,
+fstab and SELinux implications separately. Merely finding relevant
+symbols/strings is not a runtime check. There is no need to assume that
+a new native GZH3 TWRP build is mandatory solely to install the ROM.
+
+The stock GZH3 recovery does not contain UN1CA's development OTA
+signing key; this **stock recovery** trust mismatch must not be
+conflated with custom recovery behavior. Do not remove `E3099` until
+device/recovery gates are actually passed, and do not attempt to
+flash the existing HOST_ONLY target-files ZIP.
