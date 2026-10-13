@@ -45,3 +45,45 @@ inactive until kernel and A16 SELinux qualification.
 
 No ROM image, active kernel module or phone partition is modified.
 E3099 remains active. This is not a flashing instruction.
+## Real Ubuntu host build result — 2026-10-13
+
+**HOST BUILD PASS (not ROM-integrated / not device-qualified).** The user ran
+`bash scripts/r0s/build_extremekrnl_a16.sh --build` successfully at the
+canonical checkout `out/kernel_tmp-exynos2200/`, after reusing the already
+prepared source and downloading upstream clang-r614150. The compile and
+upstream kernel ZIP generation completed, and our five-module verification
+passed. The log contains one nonfatal `sorttable.c` unused-variable warning;
+no reported compile errors. `CONFIG_KSU=y`, `CONFIG_MODVERSIONS=y`,
+`KSU: Yes`, `Permissive: No` were observed; the latter is a compile mode,
+**not evidence of Android runtime SELinux enforcing**.
+
+Source: `78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95`.
+KernelSU Next: `8f902aeb16033024143ae36cf711df902cf02fae` (v3.4.1).
+Kernel release: `5.10.269-ExtremeKRNL-v2.5+`.
+
+| Host artifact (relative to checkout `build/out/r0s/`) | Size (bytes) | SHA256 |
+| --- | ---: | --- |
+| `boot.img` | 29810688 | `d60d14256ed89767820b4de71d1d471c301bd6a63af3db009a9def97e27cec18` |
+| `vendor_boot.img` | 24965120 | `2708bca83980d8ef3678462573bdcd4d75682cbf7237f0601c70b9151f8b4e5f` |
+| `dtbo.img` | 2206476 | `18a0c5572edcbf6a83bb55a407e956f78c34306e76b97fb9747a988b09c507df` |
+
+Five rebuilt `build/out/r0s/modules/lib/modules/*.ko` files carry the exact
+same `5.10.269-ExtremeKRNL-v2.5+ SMP preempt mod_unload modversions aarch64`
+vermagic:
+
+| Vendor module | SHA256 |
+| --- | --- |
+| `fingerprint.ko` | `7b4dcae483c32e211599393cf7142fcb63824437264265f2bd9253fc49c98545` |
+| `fingerprint_sysfs.ko` | `fd6744c69f1aff1e1a6f2f536f0f48ba99ca6d7df4d70574543141b38edb5d95` |
+| `input_booster_lkm.ko` | `be8e3b2c13056da6f447fd3862b453c03feee2a7c336165203d7c37c4722d1ea` |
+| `sec_debug_coredump.ko` | `110cf61f8f18577fa1c327e1fa6fd6a0f4a8da98b22fa8480935233eb59afbf4` |
+| `wlan.ko` | `75c4344063ce7af1c8234b6bd01569529094de75e77d555ebbb163598c2002e8` |
+
+**Next engineering gate:** verify the custom boot and vendor_boot header/ramdisk
+contents, full module load-list and provenance, A16 firmware and module
+interfaces, and how to integrate through the UN1CA patch pipeline without
+invalidating its native GZH3/PROCA-only audit. Do not overwrite the existing
+11-GiB GZH3 workdir or its existing stock-kernel provenance evidence simply
+to promote this candidate. Prepare separate custom-kernel integration gates.
+The existing `E3099` safety abort, original FYI3 bootloader, existing phone
+installation and recovery remain unchanged.
