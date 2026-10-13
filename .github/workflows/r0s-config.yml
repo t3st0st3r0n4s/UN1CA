@@ -71,6 +71,9 @@ jobs:
       - name: Test S901B FYI3 to GZH3 installation contract syntax (synthetic only)
         shell: bash
         run: python3 scripts/r0s/audit_install_prerequisites.py --self-test
+      - name: Test actual-OTA binary to existing TWRP static-ABI inspector (synthetic only)
+        shell: bash
+        run: python3 scripts/r0s/audit_ota_updater_twrp.py --self-test
       - name: Test host-only single full OTA archive safety gate (synthetic only)
         shell: bash
         run: python3 scripts/r0s/build_full_ota_guarded.py --self-test

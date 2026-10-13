@@ -66,3 +66,26 @@ Retained local host artifact (not uploaded to GitHub):
 FYI3 bootloader and TWRP must be qualified for this actual UN1CA legacy
 block OTA and GZH3 kernel/runtime. No flash should be attempted using
 this E3099-locked ZIP; changing the bootloader is excluded by policy.
+
+## Next: actual updater versus existing S901B TWRP (read-only)
+
+Run this against the completed 6.09 GB ZIP and the **same existing** pinned
+S901B TWRP TAR as the earlier host recovery audits:
+
+```sh
+cd ~/android/UN1CA
+python3 scripts/r0s/audit_ota_updater_twrp.py
+```
+
+The script hashes the full ZIP, confirms its E3099 abort precedes writes,
+extracts **only the already packaged** update-binary in temporary host storage,
+and verifies that it equals the exact UN1CA updater prebuilt. It checks the
+ELF architecture, embedded edify function-name hints, interpreter and direct
+shared-library names in the existing TWRP ramdisk. It never invokes the
+updater, boots recovery or accesses the phone. This is a *compatibility
+inventory*, not proof that a binary will execute or that kernel dm/super
+operations will function at runtime. Missing libraries or linker are
+reported explicitly, without inventing a new TWRP requirement.
+
+The agreed I(18) FYI3 bootloader stays untouched and the single integrated
+ROM ZIP remains E3099-locked. Do **not** flash during this stage.
