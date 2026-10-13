@@ -185,3 +185,60 @@ boot metadata. Additional work remains for vendor_dlkm metadata packaging,
 ROM patch module activation, AVB/signed target-files, actual runtime KSU,
 firmware compatibility, FYI3 bootloader, and device validation. Do not
 flash these candidate images.
+
+### Real hybrid candidate PASS; late UN1CA module now wired — 2026-10-13
+
+The user executed the real GZH3/ExtremeKRNL hybrid builder successfully:
+
+| Artifact | SHA256 |
+| --- | --- |
+| `boot.img` | `55d86a13ae72768023961c8f05ed3eec0f3b4486da3e7a081b848b1e89355ad3` |
+| `vendor_boot.img` | `5901c98df36a8c11204a7e0e579f2824e24c133640e15b0b605de076901101c0` |
+| `dtbo.img` | `18a0c5572edcbf6a83bb55a407e956f78c34306e76b97fb9747a988b09c507df` |
+
+Five `vendor_dlkm` modules matched their separately compiled pin hashes
+and the hybrid repack verified native GZH3 EROFS first-stage fstab and
+ramdisk preservation byte-for-byte. This is **HYBRID HOST PASS**, not
+boot/device compatibility.
+
+The reproducible UN1CA ROM integration is now
+`target/r0s/late_patches/extremekrnl/{module.prop,customize.sh}`.
+Upstream `scripts/make_rom.sh` now applies optional device late patches
+**after** the generic `unica/patches` and `unica/mods`, thereby preserving
+the prior PROCA and filesystem patches before substituting the verified
+hybrid. It is not a global ROM module: only the r0s target has this
+late module. The canonical source checkout stays in
+`out/kernel_tmp-exynos2200` and the candidate stays isolated under
+`out/r0s_A16_ExtremeKRNL_KSU_hybrid_candidate`.
+
+The integrity tool
+`scripts/r0s/integrate_extremekrnl_a16.py` pins all three image SHA256s,
+five vendor module SHA256s, source/KSU commits, module vermagic,
+firmware marker, native boot ramdisk, native vendor_ramdisk00/bootconfig
+and E3099. `--check` is read-only. `--apply` is guarded to the
+target late-patch phase only. After a future completed rebuild, `--verify`
+checks the integrated workdir by exact pinned hashes. The stock workdir
+and packaged provenance checks remain strict in stock mode, but dispatch
+to custom provenance when the custom marker exists.
+
+**First, perform a read-only host preflight (does not rebuild workdir):**
+
+```bash
+cd ~/android/UN1CA
+git pull --ff-only origin sixteen-r0s
+PATH="$PWD/out/tools/bin:$PATH" \
+python3 scripts/r0s/integrate_extremekrnl_a16.py --check
+```
+
+Only if that passes may the operator choose to rebuild the UN1CA workdir
+through the normal `make_rom.sh --no-target-files` path, which executes
+the late module automatically. This is a real workdir regeneration, not
+a single-file in-place toggle; it must NOT be run until disk capacity and
+existing output backups are considered. No automatic target-files,
+flashable ZIP, firmware, bootloader, TWRP or phone change is caused by
+the integration script. The existing E3099 installer lock remains.
+
+**Still not qualified:** kernel DTB/DTBO interoperability with this GZH3
+firmware and retained FYI3 bootloader I, normal-boot SELinux,
+`vendor_dlkm` metadata compatibility and actual module loading,
+AVB/bootloader trust, KSU manager runtime, recovery/rollback, physical BOARD.
