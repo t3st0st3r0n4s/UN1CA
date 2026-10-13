@@ -26,6 +26,7 @@ on:
       - 'scripts/r0s/preflight_target_files.py'
       - 'scripts/r0s/build_target_files_guarded.sh'
       - 'scripts/r0s/audit_target_files_host.sh'
+      - 'scripts/r0s/audit_packaged_kernel_modules.sh'
       - 'scripts/ci/test_r0s_target_files_preflight.py'
       - 'scripts/ci/test_r0s_target_files_zip.py'
       - 'scripts/r0s/check_unpacked_boot_header.sh'
@@ -77,7 +78,7 @@ jobs:
         run: python3 scripts/ci/test_r0s_proca_kernel_delta.py
       - name: Test guarded target-files capacity and firmware preflight (synthetic only)
         shell: bash
-        run: python3 scripts/ci/test_r0s_target_files_preflight.py && bash -n scripts/r0s/build_target_files_guarded.sh && bash -n scripts/r0s/audit_target_files_host.sh
+        run: python3 scripts/ci/test_r0s_target_files_preflight.py && bash -n scripts/r0s/build_target_files_guarded.sh && bash -n scripts/r0s/audit_target_files_host.sh && bash -n scripts/r0s/audit_packaged_kernel_modules.sh
       - name: Test native GZH3 target-files ZIP checker (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_target_files_zip.py

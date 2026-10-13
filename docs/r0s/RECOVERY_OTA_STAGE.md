@@ -146,3 +146,21 @@ host and must not be reported as PASS merely because CI syntax succeeds.
 stock bootloader AVB trust and rollback, kernel/module ABI, normal-boot
 SELinux, and physical S901B boot remain UNVERIFIED. The unconditional
 `E3099` installer abort remains active. Do not flash this target-files ZIP.
+
+## Deep host audit PASS and kernel/module provenance next (2026-10-13)
+
+The user verified the pinned HOST_ONLY target-files SHA-256, full ZIP CRC,
+all three boot-chain AVB signatures against the **development** test key,
+and the five readonly native logical partitions in empty-super lpdump.
+AVB algorithm was SHA256_RSA4096 and rollback indexes were 0; neither
+fact establishes Samsung stock bootloader trust or rollback acceptance.
+Native group_basic maximum is 11739856896 bytes. No independent system_ext
+partition exists. Deep host target-files validation is **PASS**.
+
+Next read-only gate is scripts/r0s/audit_packaged_kernel_modules.sh. It
+extracts only the packaged boot kernel and small vendor_dlkm EROFS filesystem;
+it compares the packaged embedded kernel against the exact GZH3 PROCA delta,
+and checks all five packaged vendor modules byte-for-byte against stock and
+workdir, including native modinfo vermagic. Host execution is pending.
+Even PASS is provenance, **not full kernel-module ABI** (exported CRC/KMI
+or physical loadability). E3099 remains active; no OTA or flashing.
