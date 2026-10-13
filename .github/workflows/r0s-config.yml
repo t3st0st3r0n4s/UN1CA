@@ -23,6 +23,7 @@ on:
       - 'scripts/r0s/build_full_ota_guarded.py'
       - 'scripts/r0s/build_extremekrnl_a16.sh'
       - 'scripts/r0s/audit_extremekrnl_a16_candidate.sh'
+      - 'scripts/r0s/compare_extremekrnl_gzh3_a16.py'
       - 'docs/r0s/CUSTOM_KERNEL_KSU_A16.md'
       - 'scripts/r0s/make_twrp_abort_probe.py'
       - 'scripts/r0s/check_tachyon_rollback_zip.py'
@@ -87,6 +88,9 @@ jobs:
       - name: Test A16 custom-kernel artifact inspector (syntax only, no build)
         shell: bash
         run: bash scripts/r0s/audit_extremekrnl_a16_candidate.sh --self-test
+      - name: Test native GZH3 vs ExtremeKRNL vendor_boot comparison (synthetic only)
+        shell: bash
+        run: python3 scripts/r0s/compare_extremekrnl_gzh3_a16.py --self-test
       - name: Test host-only single full OTA archive safety gate (synthetic only)
         shell: bash
         run: python3 scripts/r0s/build_full_ota_guarded.py --self-test
