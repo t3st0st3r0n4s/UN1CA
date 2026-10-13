@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Create a HOST-ONLY A16 r0s kernel-update recovery payload from target-files.
+"""Prepare a kernel-only legacy TWRP updater ZIP for UN1CA A16 r0s.
 
-The upstream ExtremeKRNL recovery ZIP is unsafe for GZH3: it uses native-
-incompatible vendor_boot ramdisk00 and omits matching vendor_dlkm modules.
-This packaging gate copies the *verified, AVB-signed* reconciled boot images
-and vendor_dlkm partition image from existing host-only target-files.
+TachyonOS A15's ExtremeKRNL ZIP has already been flashed successfully using
+the user's existing TWRP. Reuse that established installation style, without
+rebuilding or revalidating the A15 recovery or touching its source.
 
-It intentionally does NOT include an update-binary or any flashing command.
-The contained updater-script unconditionally aborts with E3099. This ZIP
-is a retained development payload, NOT a flashable recovery ZIP. Do not
-relax until recovery mapping, AVB trust, bootloader, ABI and BOARD qualify.
+Unlike the upstream A16 ExtremeKRNL ZIP, carry the native GZH3-reconciled
+boot/vendor_boot/dtbo *and* the matching vendor_dlkm as a block OTA. Reuse
+UN1CA's already proven, statically linked update-binary and the same
+block_image_update(map_partition(...)) semantics as its full OTA.
+
+Do NOT call remove_all_groups or update_dynamic_partitions on a kernel-only
+update: other installed A16 logical partitions must be preserved. This ZIP is
+E3099 LOCKED and cannot currently flash anything; it is for HOST qualification
+and a future **already-installed A16** kernel update, not for first A16 install.
 """
 from __future__ import annotations
 
@@ -19,6 +23,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -26,254 +31,312 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "out/r0s_A16_GZH3_HOST_ONLY-target_files.zip"
-OUTPUT = ROOT / "out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_GZH3_RECOVERY_HOLD.zip"
+OUTPUT = ROOT / "out/r0s_A16_ExtremeKRNL_KSUNext_v3.4.1_TWRP_E3099_LOCKED.zip"
 E3099 = ('abort("E3099: UN1CA sixteen-r0s is under development and '
          'NOT qualified for flashing.");')
 KERNEL_PIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
 KSU_PIN = "8f902aeb16033024143ae36cf711df902cf02fae"
-MANAGER_APK_SHA = "f41778ee812512ae96bf53e7265114de5e0414bc5cb92397f49e1052d77da118"
-SOURCE_PARTITIONS = ("boot.img", "vendor_boot.img", "dtbo.img",
-                     "vendor_dlkm.img")
-CAPS = {"boot.img": 67108864, "vendor_boot.img": 33554432,
-        "dtbo.img": 8388608}
-ZIPS = {"images/" + name: name for name in SOURCE_PARTITIONS}
-DOC = (
-    "NOT FLASHABLE / E3099 ACTIVE\n\n"
-    "Android 16, Samsung Galaxy S22 SM-S901B (r0s), GZH3/UN1CA.\n"
-    "Kernel 5.10.269 ExtremeKRNL v2.5, built-in KernelSU Next v3.4.1.\n"
-    "The 'images/' payload contains AVB-signed boot, vendor_boot, dtbo,\n"
-    "and the matching GZH3 vendor_dlkm EROFS logical-partition image.\n"
-    "These are derived from the validated UN1CA target-files archive, NOT\n"
-    "from the upstream ExtremeKRNL recovery ZIP. No update-binary exists.\n"
-    "The updater-script aborts unconditionally with E3099, no partition\n"
-    "writer is provided, and no phone is accessed by the package builder.\n"
-    "The user must NOT rename, flash, sideload or extract-and-dd this ZIP.\n"
-    "A future installer needs a qualified TWRP/OTA/recovery environment,\n"
-    "r0s/GZH3 identification, proper dynamic vendor_dlkm mapping, AVB\n"
-    "chain/trust, exact module ABI, backups/rollback, and actual BOARD PASS.\n"
-    "Even after qualification, kernel-only updates must carry any changed\n"
-    "vendor_dlkm modules and preserve native GZH3 vendor_boot ramdisk00.\n"
+KSU_APK_SHA = "f41778ee812512ae96bf53e7265114de5e0414bc5cb92397f49e1052d77da118"
+BOOTS = ("vendor_boot", "dtbo", "boot")
+CAPS = {"boot.img": 67_108_864, "vendor_boot.img": 33_554_432,
+        "dtbo.img": 8_388_608}
+MANIFEST = "KERNEL_UPDATE_MANIFEST.json"
+NOTICE = "READ_ME_E3099_NOT_FLASHABLE.txt"
+UPDATER = "META-INF/com/google/android/updater-script"
+BINARY = "META-INF/com/google/android/update-binary"
+DAT = "vendor_dlkm.new.dat.br"
+TRANSFER = "vendor_dlkm.transfer.list"
+PATCH = "vendor_dlkm.patch.dat"
+PAYLOADS = set(CAPS) | {DAT, TRANSFER, PATCH}
+EXPECTED = PAYLOADS | {MANIFEST, NOTICE, UPDATER, BINARY}
+SCRIPT = (
+    '# This is a kernel-only updater for a previously installed UN1CA A16 ROM.\n'
+    '# Existing TWRP and updater proven for A15; A16 update paths unqualified.\n'
+    'getprop("ro.boot.em.model") == "SM-S901B" || '
+    'abort("E3004: This updater is only for SM-S901B.");\n'
+    + E3099 + '\n'
+    'ui_print("UN1CA A16 ExtremeKRNL / KernelSU Next kernel-only update");\n'
+    '# No update_dynamic_partitions / remove_all_groups: preserve system etc.\n'
+    'block_image_update(map_partition("vendor_dlkm"), '
+    'package_extract_file("vendor_dlkm.transfer.list"), '
+    '"vendor_dlkm.new.dat.br", "vendor_dlkm.patch.dat") || '
+    'abort("E2001: vendor_dlkm kernel modules update failed.");\n'
+    'package_extract_file("vendor_boot.img", "/dev/block/by-name/vendor_boot") || '
+    'abort("E2002: vendor_boot update failed.");\n'
+    'package_extract_file("dtbo.img", "/dev/block/by-name/dtbo") || '
+    'abort("E2003: dtbo update failed.");\n'
+    'package_extract_file("boot.img", "/dev/block/by-name/boot") || '
+    'abort("E2004: boot update failed.");\n'
+    'ui_print("Kernel-only update complete.");\n'
 )
-UPDATER = "# Unconditional development abort; never writes partitions.\n" + E3099 + "\n"
-MANIFEST_NAME = "KERNEL_UPDATE_MANIFEST.json"
-README_NAME = "NOT_FLASHABLE.txt"
-UPDATER_NAME = "META-INF/com/google/android/updater-script"
+README = (
+    "NOT FLASHABLE. The real update-binary is included but updater-script\n"
+    "immediately aborts E3099 BEFORE EVERY partition-write operation.\n"
+    "DO NOT REMOVE E3099 or attempt device installation.\n\n"
+    "This is the native GZH3/UN1CA Android 16 ExtremeKRNL v2.5 +\n"
+    "KernelSU Next v3.4.1 kernel-only maintenance package for an already\n"
+    "installed A16 UN1CA r0s; NOT a first-install A15-to-A16 ROM update.\n"
+    "It uses the existing TWRP's previously tested legacy updater launch,\n"
+    "not a newly compiled/replaced TWRP.\n\n"
+    "Partition operations after a future qualification and E3099 removal:\n"
+    "  1. Block-update existing dynamic vendor_dlkm (modules, AVB, EROFS).\n"
+    "  2. Write matched, signed vendor_boot/dtbo/boot by-name images.\n"
+    "  3. Preserve system/product/vendor/odm, BL, CP, vbmeta, recovery,\n"
+    "     userdata and existing dynamic partition group definitions.\n"
+    "The update assumes the installed A16 vendor_dlkm logical partition\n"
+    "already exists and its allocated size accepts the new EROFS image.\n"
+    "Missing gates: installed-A16 identity check, dynamic mapping and\n"
+    "size validation, AVB trust, bootloader/kernel runtime, rollback, and\n"
+    "real-device A16 kernel-only update. Never use on TachyonOS A15.\n"
+)
 
 
 class Hold(RuntimeError):
     pass
 
 
-def need(value, reason):
-    if not value:
+def need(yes, reason):
+    if not yes:
         raise Hold(reason)
 
 
-def digest(f):
+def hash_stream(stream):
     h = hashlib.sha256()
-    while True:
-        b = f.read(1024 * 1024)
-        if not b:
-            break
-        h.update(b)
+    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+        h.update(chunk)
     return h.hexdigest()
 
 
-def file_digest(p):
-    with p.open("rb") as f:
-        return digest(f)
+def sha(path):
+    with path.open("rb") as f:
+        return hash_stream(f)
 
 
-def zip_digest(z, member):
-    with z.open(member) as f:
-        return digest(f)
+def zip_hash(z, name):
+    with z.open(name) as f:
+        return hash_stream(f)
 
 
-def entry(name, data):
-    info = zipfile.ZipInfo(name, date_time=(2026, 10, 13, 0, 0, 0))
-    info.compress_type = zipfile.ZIP_DEFLATED
-    info.external_attr = 0o644 << 16
-    return info, data
-
-
-def inputs(source, source_digest):
-    need(re.fullmatch(r"[0-9a-f]{64}", source_digest), "expected SHA256 must be 64 lowercase hex digits")
+def pinned_input(source, expected_sha):
+    need(re.fullmatch(r"[0-9a-f]{64}", expected_sha or ""),
+         "pass the exact current target-files SHA256")
     need(source.is_file() and source.stat().st_size > 0, "target-files ZIP missing")
-    need(file_digest(source) == source_digest, "target-files SHA256 does not match")
-    lock = (ROOT / "target/r0s/installer/assertions.edify").read_text()
-    need(E3099 in lock, "E3099 global installer lock missing")
+    need(sha(source) == expected_sha, "source target-files SHA256 mismatch")
+    need(E3099 in (ROOT / "target/r0s/installer/assertions.edify").read_text(),
+         "mandatory source E3099 missing")
     work = ROOT / "out/target/r0s/work_dir"
     need((work / "kernel/.r0s_extremekrnl_a16_integrated").is_file(),
-         "hybrid kernel not marked as integrated")
-    need((work / "system/system/etc/unica/ksunext/manager_payload.bin").is_file(),
-         "A16 manager auto-install payload missing from workdir")
-    need(file_digest(work / "system/system/etc/unica/ksunext/manager_payload.bin")
-         == MANAGER_APK_SHA, "A16 KSU manager payload changed")
+         "reconciled A16 ExtremeKRNL not integrated")
+    manager = work / "system/system/etc/unica/ksunext/manager_payload.bin"
+    need(manager.is_file() and sha(manager) == KSU_APK_SHA,
+         "A16 ROM has not embedded the matching KSU Manager v3.4.1")
+    binary = ROOT / "prebuilts/bootable/deprecated-ota/updater"
+    need(binary.is_file() and binary.stat().st_size > 0,
+         "existing UN1CA legacy updater-binary missing")
     with zipfile.ZipFile(source) as z:
         names = z.namelist()
-        for name in SOURCE_PARTITIONS:
-            need(names.count(name) == 1, "target-files missing/duplicated " + name)
-            item = z.getinfo(name)
-            need(item.file_size > 0, "empty " + name)
-            if name in CAPS:
-                need(item.file_size == CAPS[name],
-                     "signed boot image is not filled to physical partition cap: " + name)
-        need("unsparse_super_empty.img" in names, "GZH3 LP metadata absent")
-        need(z.testzip() is None, "target-files ZIP member CRC failure")
-    print("A16 KSU KERNEL-UPDATE PAYLOAD SOURCE/PIN CHECK PASS — E3099 ACTIVE")
-    print("Source archive: " + str(source))
-    print("Source SHA256: " + source_digest)
+        for name, cap in CAPS.items():
+            need(names.count(name) == 1 and z.getinfo(name).file_size == cap,
+                 "AVB-signed boot-chain partition size mismatch: " + name)
+        need(names.count("vendor_dlkm.img") == 1, "vendor_dlkm.img missing")
+        need(names.count("unsparse_super_empty.img") == 1,
+             "GZH3 dynamic metadata absent")
+        need(z.testzip() is None, "source archive CRC failure")
+    print("A16 KERNEL-ONLY TWRP UPDATER INPUT PASS — E3099 ACTIVE", flush=True)
+    print("existing TWRP binary is not rechecked or modified", flush=True)
+    print("target-files SHA256: " + expected_sha, flush=True)
 
 
-def deep_audits(source, source_digest):
+def deep_audits(expected_sha):
+    env = {**os.environ, "PATH": str(ROOT / "out/tools/bin")
+           + os.pathsep + os.environ.get("PATH", "")}
     for name in ("audit_target_files_host.sh", "audit_packaged_kernel_modules.sh"):
-        script = ROOT / "scripts/r0s" / name
-        need(script.is_file(), "missing deep audit: " + name)
-        env = dict(os.environ)
-        env["PATH"] = str(ROOT / "out/tools/bin") + os.pathsep + env.get("PATH", "")
-        print("===== HOST DEEP AUDIT: " + name + " =====", flush=True)
-        r = subprocess.run(["bash", str(script), str(source), source_digest], env=env)
-        need(r.returncode == 0, "source target-files failed: " + name)
+        print("===== A16 TARGET-FILES AUDIT: " + name + " =====", flush=True)
+        r = subprocess.run(["bash", str(ROOT / "scripts/r0s" / name),
+                            str(SOURCE), expected_sha], env=env)
+        need(r.returncode == 0, "A16 host audit failed: " + name)
 
 
-def build(source, source_digest, output):
-    need(not output.exists(), "existing output will not be overwritten: " + str(output))
-    inputs(source, source_digest)
-    deep_audits(source, source_digest)
-    need(not output.exists(), "output appeared while validating")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    fd, stage_name = tempfile.mkstemp(prefix=".r0s-ksu-recovery-hold-", suffix=".zip",
-                                      dir=output.parent)
-    os.close(fd)
-    stage = Path(stage_name)
-    try:
-        packed = {}
-        with zipfile.ZipFile(source) as zsrc, zipfile.ZipFile(stage, "w", allowZip64=True) as zout:
-            for output_name, input_name in ZIPS.items():
-                h = hashlib.sha256()
-                with zsrc.open(input_name) as reader, zout.open(
-                    zipfile.ZipInfo(output_name, date_time=(2026, 10, 13, 0, 0, 0)),
-                    "w", force_zip64=True
-                ) as writer:
-                    while True:
-                        b = reader.read(1024 * 1024)
-                        if not b:
-                            break
-                        h.update(b)
-                        writer.write(b)
-                packed[output_name] = {"sha256": h.hexdigest(),
-                                       "size": zsrc.getinfo(input_name).file_size}
-            manifest = {
-                "status": "HOST_ONLY_NOT_FLASHABLE",
-                "device": "SM-S901B",
-                "codename": "r0s",
-                "source_firmware": "S901BXXSOGZH3",
-                "android_api": 36,
-                "kernel_release": "5.10.269-ExtremeKRNL-v2.5+",
-                "kernel_source_commit": KERNEL_PIN,
-                "ksunext_version": "3.4.1",
-                "ksunext_commit": KSU_PIN,
-                "source_target_files_sha256": source_digest,
-                "payload": packed,
-                "e3099_enforced": True,
-                "board_qualified": False,
-                "recovery_installer_included": False,
-            }
-            for name, body in (
-                (README_NAME, DOC.encode()),
-                (UPDATER_NAME, UPDATER.encode()),
-                (MANIFEST_NAME, (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()),
-            ):
-                info, data = entry(name, body)
-                zout.writestr(info, data)
-        verify(stage, expected_source_digest=source_digest)
-        need(not output.exists(), "output appeared while assembling")
-        stage.replace(output)
-    finally:
-        stage.unlink(missing_ok=True)
-    print("A16 EXTREMEKRNL / KSU NEXT RECOVERY-HOLD PAYLOAD HOST PASS")
-    print("Archive: " + str(output))
-    print("SHA256: " + file_digest(output))
-    print("NOT FLASHABLE; E3099 ACTIVE; target-files and original kernel cache preserved")
+def run_convert(img, scratch):
+    out = scratch / "sdat"
+    out.mkdir()
+    map_file = scratch / "vendor_dlkm.map"
+    tool = str(ROOT / "out/tools/bin/img2sdat")
+    if not Path(tool).is_file():
+        tool = shutil.which("img2sdat")
+    need(tool, "img2sdat host tool missing")
+    p = subprocess.run([tool, "-o", str(out), "--tgt-block-map",
+                        str(map_file), str(img)],
+                       capture_output=True, text=True)
+    need(p.returncode == 0, "img2sdat failed: " + p.stderr[-1000:])
+    newdat = out / "vendor_dlkm.new.dat"
+    transfer = out / TRANSFER
+    need(newdat.is_file() and newdat.stat().st_size > 0,
+         "vendor_dlkm.new.dat not generated")
+    need(transfer.is_file() and transfer.stat().st_size > 0,
+         "vendor_dlkm transfer list not generated")
+    brotli = str(ROOT / "out/tools/bin/brotli")
+    if not Path(brotli).is_file():
+        brotli = shutil.which("brotli")
+    need(brotli, "brotli host tool missing")
+    p = subprocess.run([brotli, "--quality=6", "--output=" + str(out / DAT),
+                        str(newdat)], capture_output=True, text=True)
+    need(p.returncode == 0 and (out / DAT).is_file(),
+         "vendor_dlkm Brotli compression failed: " + p.stderr[-1000:])
+    # Full UN1CA OTAs pass a patch.dat filename even for all-new dat payload.
+    patch = out / PATCH
+    if not patch.exists():
+        patch.write_bytes(b"")
+    need(patch.is_file(), "vendor_dlkm patch.dat absent")
+    print("vendor_dlkm block update generated (no dynamic group recreation)")
+    return out
 
 
-def verify(archive, expected_source_digest=None):
-    need(archive.is_file() and archive.stat().st_size > 0, "missing package")
-    with zipfile.ZipFile(archive) as z:
-        need(z.testzip() is None, "kernel update ZIP CRC failed")
+def manifest_payload(archive, z, expected_sha):
+    recs = {}
+    for name in (sorted(PAYLOADS) + [BINARY]):
+        recs[name] = {"size": z.getinfo(name).file_size,
+                      "sha256": zip_hash(z, name)}
+    return {
+        "status": "HOST_ONLY_E3099_LOCKED",
+        "device": "SM-S901B", "codename": "r0s", "android_api": 36,
+        "firmware": "S901BXXSOGZH3",
+        "kernel": "5.10.269-ExtremeKRNL-v2.5+",
+        "kernel_source": KERNEL_PIN,
+        "ksunext_version": "3.4.1", "ksunext_commit": KSU_PIN,
+        "target_files_sha256": expected_sha,
+        "type": "legacy_twrp_kernel_only_block_ota",
+        "dynamic_operation": "block_image_update(map_partition(vendor_dlkm))",
+        "dynamic_partition_group_changes": False,
+        "boot_images": list(BOOTS),
+        "first_install_supported": False,
+        "recovery_replacement": False,
+        "a16_board_qualified": False,
+        "e3099_before_all_writes": True,
+        "payload": recs,
+    }
+
+
+def archive_verify(path, source_sha=None):
+    need(path.is_file() and path.stat().st_size > 0, "update archive missing")
+    with zipfile.ZipFile(path) as z:
         names = z.namelist()
-        need(set(names) == set(ZIPS) | {README_NAME, UPDATER_NAME, MANIFEST_NAME},
-             "unexpected or missing recovery payload members")
-        need("META-INF/com/google/android/update-binary" not in names,
-             "unsafe: flashable updater binary is present")
-        need(z.read(README_NAME).decode() == DOC, "NOT_FLASHABLE warning changed")
-        need(z.read(UPDATER_NAME).decode() == UPDATER,
-             "unconditional E3099 updater-script changed")
-        m = json.loads(z.read(MANIFEST_NAME))
-        need(m.get("status") == "HOST_ONLY_NOT_FLASHABLE"
-             and m.get("e3099_enforced") is True
-             and m.get("board_qualified") is False
-             and m.get("recovery_installer_included") is False,
-             "unsafe manifest gate state")
-        need(m.get("kernel_source_commit") == KERNEL_PIN
-             and m.get("ksunext_commit") == KSU_PIN
-             and m.get("ksunext_version") == "3.4.1",
-             "kernel/KSU provenance drift")
-        src = m.get("source_target_files_sha256")
-        need(isinstance(src, str) and re.fullmatch(r"[0-9a-f]{64}", src),
-             "source target-files SHA256 missing")
-        if expected_source_digest:
-            need(src == expected_source_digest, "source target-files digest drift")
-        for member in ZIPS:
-            meta = m["payload"].get(member, {})
-            need(meta.get("size") == z.getinfo(member).file_size,
-                 "member size mismatch: " + member)
-            need(meta.get("sha256") == zip_digest(z, member),
-                 "member SHA256 mismatch: " + member)
-    print("A16 KERNEL-UPDATE RECOVERY-HOLD ARCHIVE VERIFY PASS — no writes to any device")
-    print("NO update-binary / updater-script E3099 / TWRP flashing unsupported")
+        need(len(names) == len(set(names)) and set(names) == EXPECTED,
+             "unexpected or missing kernel updater ZIP entries")
+        need(z.testzip() is None, "kernel-only ZIP CRC failure")
+        code = z.read(UPDATER).decode()
+        need(code == SCRIPT, "updater-script modified from pinned writer recipe")
+        need(code.count(E3099) == 1, "E3099 missing or duplicated")
+        operations = ("block_image_update(", "package_extract_file(")
+        indices = [code.find(term) for term in operations]
+        indices = [n for n in indices if n >= 0]
+        # Ignore comments by testing the exact source recipe and its ordering.
+        need(indices and code.find(E3099) < min(indices),
+             "E3099 not before partition operations")
+        need("remove_all_groups" not in code.splitlines()[4:] and
+             "update_dynamic_partitions(" not in code.splitlines()[4:],
+             "kernel-only updater must not alter installed super group")
+        need(code.count('block_image_update(map_partition("vendor_dlkm")') == 1,
+             "vendor_dlkm not updated exactly once")
+        for p in BOOTS:
+            need(code.count('package_extract_file("' + p +
+                            '.img", "/dev/block/by-name/' + p + '")') == 1,
+                 "boot chain not updated exactly once: " + p)
+        need(z.read(NOTICE).decode() == README, "E3099 warning changed")
+        info = json.loads(z.read(MANIFEST))
+        need(info["status"] == "HOST_ONLY_E3099_LOCKED" and
+             info["a16_board_qualified"] is False and
+             info["e3099_before_all_writes"] is True and
+             info["dynamic_partition_group_changes"] is False and
+             info["first_install_supported"] is False,
+             "manifest incorrectly promotes flashability")
+        need(info["kernel_source"] == KERNEL_PIN and info["ksunext_commit"] == KSU_PIN,
+             "kernel/KSU pin drift")
+        if source_sha:
+            need(info["target_files_sha256"] == source_sha,
+                 "source target-files identity changed")
+        for name, rec in info["payload"].items():
+            need(name in names and z.getinfo(name).file_size == rec["size"] and
+                 zip_hash(z, name) == rec["sha256"],
+                 "archive payload hash mismatch: " + name)
+    print("A16 KERNEL-ONLY TWRP UPDATE ZIP HOST VERIFY PASS — E3099 LOCKED")
+    print("Real legacy updater present; only vendor_dlkm + 3 boot-chain images")
+    print("No full ROM rebuild, recovery replacement, BL/CP or system writes")
+
+
+def archive_build(expected_sha):
+    need(not OUTPUT.exists(), "refusing to overwrite prior output: " + str(OUTPUT))
+    pinned_input(SOURCE, expected_sha)
+    deep_audits(expected_sha)
+    need(not OUTPUT.exists(), "output appeared during host audits")
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".r0s_ksu_kernel_update_",
+                                     dir=OUTPUT.parent) as folder:
+        scratch = Path(folder)
+        with zipfile.ZipFile(SOURCE) as z:
+            for name in CAPS:
+                with z.open(name) as f, (scratch / name).open("wb") as w:
+                    shutil.copyfileobj(f, w)
+            with z.open("vendor_dlkm.img") as f, (scratch / "vendor_dlkm.img").open("wb") as w:
+                shutil.copyfileobj(f, w)
+        datdir = run_convert(scratch / "vendor_dlkm.img", scratch)
+        staging = scratch / "update.zip"
+        blobs = {name: scratch / name for name in CAPS}
+        blobs[DAT] = datdir / DAT
+        blobs[TRANSFER] = datdir / TRANSFER
+        blobs[PATCH] = datdir / PATCH
+        blobs[BINARY] = ROOT / "prebuilts/bootable/deprecated-ota/updater"
+        with zipfile.ZipFile(staging, "w", allowZip64=True) as z:
+            for name, source in sorted(blobs.items()):
+                z.write(source, name, compress_type=zipfile.ZIP_STORED)
+            z.writestr(UPDATER, SCRIPT)
+            z.writestr(NOTICE, README)
+            m = manifest_payload(staging, z, expected_sha)
+            z.writestr(MANIFEST, json.dumps(m, sort_keys=True, indent=2) + "\n")
+        archive_verify(staging, expected_sha)
+        need(not OUTPUT.exists(), "output appeared during assembly")
+        shutil.copyfile(staging, OUTPUT)
+    print("A16 KERNEL-ONLY TWRP UPDATER HOST PACKAGE PASS")
+    print("output: " + str(OUTPUT))
+    print("SHA256: " + sha(OUTPUT))
+    print("E3099 LOCKED — NOT FLASHABLE; A16 BOARD DEFERRED")
 
 
 def self_test():
-    need(E3099 in UPDATER and "package_extract_file" not in UPDATER,
-         "updater-script accidentally writes partitions")
-    need(len(KERNEL_PIN) == len(KSU_PIN) == 40 and len(MANAGER_APK_SHA) == 64,
-         "source hash pins malformed")
-    need(set(CAPS) <= set(SOURCE_PARTITIONS), "partitions mismatched")
-    with tempfile.TemporaryDirectory() as d:
-        path = Path(d) / "test.zip"
-        payload = b"not a flashable recovery package"
-        with zipfile.ZipFile(path, "w") as z:
-            z.writestr(UPDATER_NAME, UPDATER)
-        with zipfile.ZipFile(path) as z:
-            need(z.read(UPDATER_NAME).decode() == UPDATER, "unconditional abort altered")
-        need(payload and not any(x in UPDATER for x in ("dd if=", "block_image_update(", "package_extract_file(")),
-             "unsafe recovery writer")
-    print("A16 kernel-only update payload safety/pin self-test PASS")
+    need(SCRIPT.count(E3099) == 1, "one-shot E3099 gate broken")
+    # The marker is immediately after the device assert and before writes.
+    need(SCRIPT.find(E3099) < SCRIPT.find("block_image_update("),
+         "E3099 precedes OTA calls")
+    need('block_image_update(map_partition("vendor_dlkm")' in SCRIPT,
+         "vendor_dlkm update missing")
+    lines = [s.strip() for s in SCRIPT.splitlines() if not s.lstrip().startswith("#")]
+    need(not any("update_dynamic_partitions(" in s or "remove_all_groups" in s
+                 for s in lines), "unsafe group reconstruction")
+    need(len(CAPS) == 3 and len(KERNEL_PIN) == len(KSU_PIN) == 40,
+         "boot partitions or pins changed")
+    need(not any(("system.img" in s or "product.img" in s or "vendor.img" in s)
+                 for s in lines), "kernel-only updater includes OS partition")
+    print("A16 TWRP kernel-only updater self-test PASS (no device/host outputs)")
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("check", "build", "verify", "self-test"))
-    parser.add_argument("sha256", nargs="?", help="expected existing target-files SHA256 (check/build)")
-    args = parser.parse_args()
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("mode", choices=("self-test", "check", "build", "verify"))
+    p.add_argument("sha256", nargs="?", help="target-files SHA256 for check/build")
+    args = p.parse_args()
     if args.mode == "self-test":
-        need(args.sha256 is None, "self-test takes no digest")
         self_test()
-    elif args.mode in ("check", "build"):
-        need(args.sha256 is not None, "supply the exact SHA256 of target-files")
-        if args.mode == "check":
-            inputs(SOURCE, args.sha256)
-        else:
-            build(SOURCE, args.sha256, OUTPUT)
-    elif args.mode == "verify":
-        need(args.sha256 is None, "verify takes no digest")
-        verify(OUTPUT)
+    elif args.mode == "check":
+        pinned_input(SOURCE, args.sha256)
+    elif args.mode == "build":
+        archive_build(args.sha256)
+    else:
+        archive_verify(OUTPUT)
 
 
 if __name__ == "__main__":
     try:
         main()
     except (Hold, OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
-        print("A16 KERNEL UPDATE PACKAGING BLOCKED: " + str(exc), file=sys.stderr)
+        print("A16 KERNEL-ONLY UPDATER HOLD: " + str(exc), file=sys.stderr)
         sys.exit(2)
