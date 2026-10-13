@@ -20,6 +20,7 @@ on:
       - 'scripts/r0s/inspect_twrp_gzh3_userspace.py'
       - 'scripts/r0s/audit_recovery_runtime_abi.py'
       - 'scripts/r0s/audit_install_prerequisites.py'
+      - 'scripts/r0s/check_tachyon_rollback_zip.py'
       - 'scripts/r0s/audit_recovery_ota_trust.sh'
       - 'scripts/r0s/check_recovery_ota_certificates.py'
       - 'scripts/ci/test_r0s_recovery_ota_certificates.py'

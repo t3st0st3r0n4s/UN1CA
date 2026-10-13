@@ -203,3 +203,32 @@ https://doc.samsungmobile.com/SM-S901B/021718220304/eng.html
 The previously created generic ADB baseline audit is optional. It
 must not be portrayed as a new requirement to identify a phone we
 already ported and qualified under TachyonOS A15.
+
+## Immediate reversible-install prerequisite: FYI3 TachyonOS recovery ZIP
+
+TachyonOS `r0s-fyi3` source `scripts/internal/build_flashable_zip.sh`
+already generates an updater that (subject to what is present in the
+selected ROM package) writes the full dynamic logical partition group
+and `boot`, `vendor_boot`, `dtbo`. A separate new A15 rollback
+flasher is not presently required; first select a **known-good retained
+TachyonOS FYI3 ZIP**, together with the already-tested KernelSU v3.4.1
+recovery kernel ZIP if the ROM rollback ZIP contains a different kernel.
+
+The narrow read-only checker
+`scripts/r0s/check_tachyon_rollback_zip.py` inventories *actual local*
+TachyonOS archives for the five exact logical partitions, three raw
+boot-chain images, correct legacy block OTA verbs, device firmware
+assertion and absence of BL, CP, vbmeta/recovery overwrites. It reports
+structural evidence only; it never installs anything. Missing or wrong
+files are blockers. It deliberately does not decrypt/mount userdata.
+
+From `~/android/UN1CA`:
+```sh
+python3 scripts/r0s/check_tachyon_rollback_zip.py
+```
+The default searches `~/android/tachyonos_s901b/out/` for
+`TachyonOS_*_r0s*.zip`; explicit archive path(s) also work.
+This is a one-time A15 rollback candidate check, **not another Android
+device audit**. Once this is confirmed, next inspect the **UN1CA
+GZH3 OTA write set** against those same five partitions and avoid any
+bootloader changes. Do not remove E3099 or flash.
