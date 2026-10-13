@@ -50,10 +50,16 @@ for side in stock work packaged; do
 done
 cmp -s "$TMP/work/kernel" "$TMP/packaged/kernel" ||
     die 'packaged embedded kernel differs from workdir'
-python3 "$ROOT/scripts/r0s/check_proca_kernel_delta.py" \
-    "$TMP/stock/kernel" "$TMP/packaged/kernel" ||
-    die 'packaged kernel delta exceeds approved PROCA changes'
-echo 'PACKAGED KERNEL EXACT PROCA-DELTA PASS'
+if [[ -f "$WORK/kernel/.r0s_extremekrnl_a16_integrated" ]]; then
+    python3 "$ROOT/scripts/r0s/integrate_extremekrnl_a16.py" --verify ||
+        die 'custom workdir provenance failed'
+    echo 'PACKAGED KERNEL CUSTOM EXTREMEKRNL PINNED PASS (not stock PROCA delta)'
+else
+    python3 "$ROOT/scripts/r0s/check_proca_kernel_delta.py" \
+        "$TMP/stock/kernel" "$TMP/packaged/kernel" ||
+        die 'packaged kernel delta exceeds approved PROCA changes'
+    echo 'PACKAGED KERNEL EXACT PROCA-DELTA PASS'
+fi
 
 echo '===== READ ONLY PACKAGED VENDOR_DLKM EROFS ====='
 unzip -p "$ZIP" vendor_dlkm.img > "$TMP/vendor_dlkm.simg" ||
@@ -66,8 +72,14 @@ fsck.erofs --extract="$TMP/extracted" "$TMP/vendor_dlkm.raw" > "$TMP/erofs.log" 
     cat "$TMP/erofs.log" >&2
     die 'vendor_dlkm EROFS validation/extraction failed'
 }
-echo '===== NATIVE MODULE BYTE IDENTITY AND VERMAGIC ====='
-EXPECTED_VERMAGIC='5.10.237-android12-9-31999025-abS901BXXSOGZH3 SMP preempt mod_unload modversions aarch64'
+echo '===== MODULE IDENTITY AND VERMAGIC ====='
+CUSTOM=false
+if [[ -f "$WORK/kernel/.r0s_extremekrnl_a16_integrated" ]]; then
+    CUSTOM=true
+    EXPECTED_VERMAGIC='5.10.269-ExtremeKRNL-v2.5+ SMP preempt mod_unload modversions aarch64'
+else
+    EXPECTED_VERMAGIC='5.10.237-android12-9-31999025-abS901BXXSOGZH3 SMP preempt mod_unload modversions aarch64'
+fi
 for name in fingerprint.ko fingerprint_sysfs.ko input_booster_lkm.ko sec_debug_coredump.ko wlan.ko; do
     stock="$FW/vendor_dlkm/lib/modules/$name"
     work="$WORK/vendor_dlkm/lib/modules/$name"
@@ -75,13 +87,19 @@ for name in fingerprint.ko fingerprint_sysfs.ko input_booster_lkm.ko sec_debug_c
     count="$(find "$TMP/extracted" -type f -name "$name" | wc -l)"
     [[ "$count" == 1 ]] || die "unexpected packaged module count $name: $count"
     packed="$(find "$TMP/extracted" -type f -name "$name" -print -quit)"
-    cmp -s "$stock" "$work" || die "workdir module changed: $name"
-    cmp -s "$stock" "$packed" || die "packaged module changed: $name"
+    cmp -s "$work" "$packed" || die "packaged module differs from workdir: $name"
+    if $CUSTOM; then
+        cmp -s "$stock" "$work" && die "custom module identical to stock: $name"
+        cmp -s "$ROOT/out/r0s_A16_ExtremeKRNL_KSU_hybrid_candidate/vendor_dlkm/lib/modules/$name" "$packed" ||
+            die "packaged custom module differs from hybrid: $name"
+    else
+        cmp -s "$stock" "$work" || die "stock module was modified: $name"
+    fi
     vermagic="$(modinfo -F vermagic "$packed")" ||
         die "unable to read vermagic for $name"
     [[ "$vermagic" == "$EXPECTED_VERMAGIC" ]] ||
-        die "wrong native GZH3 vermagic: $name: $vermagic"
-    printf '%s STOCK_WORK_PACKAGE_MATCH sha256=' "$name"
+        die "wrong module vermagic: $name: $vermagic"
+    printf '%s WORK_PACKAGE_MATCH mode=%s sha256=' "$name" "$($CUSTOM && echo CUSTOM || echo STOCK)"
     sha256sum "$packed" | awk '{print $1}'
 done
 echo 'PACKAGED KERNEL / MODULE PROVENANCE PRECHECK PASS'
