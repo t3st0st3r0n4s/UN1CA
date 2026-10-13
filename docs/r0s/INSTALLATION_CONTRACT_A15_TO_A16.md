@@ -5,6 +5,32 @@ Keep E3099 abort in target/r0s/installer/assertions.edify. NO flashing, BL
 upgrade, A16 stock installation, recovery replacement, userdata wipe or
 automatic downgrade recommendation.
 
+## Fixed development policy: retain bootloader and reversible firmware
+
+**User-approved direction (2026-10-13):** Keep the installed, unlocked
+TachyonOS/FYI3 **Samsung bootloader at binary I (18)**. The UN1CA Android 16
+port must operate with that retained bootloader; **no Samsung bootloader
+upgrade or binary O (24) dependency is permitted** in this development
+route. Upstream LineageOS 23.2 SM-S901B Android 16 installation instructions
+specify FYI3 firmware as a baseline, supporting the approach at the
+Android-version level. This does not independently qualify GZH3-on-FYI3
+kernel/AVB runtime.
+
+**Rollback requirement:** preserve a supported return to working TachyonOS
+FYI3 by restoring its matched boot/vendor_boot/dtbo, five logical
+partitions and any necessary vbmeta/recovery configuration, with existing
+EFS backups protected. Do not rely on bootloader downgrading; the bootloader
+is deliberately never advanced. Android user data may require a wipe or
+independent backup restore on a return from A16; preservation of userdata
+is **not** guaranteed. A writeable/full rollback package and recovery
+procedure must be verified before the A16 installer is enabled.
+
+**Implementation outcome:** If GZH3 boot/kernel/vendor cannot work on the
+retained I bootloader, adjust the ROM firmware/boot-chain approach or use an
+earlier compatible A16 source. Do **not** solve that by upgrading the
+bootloader. Treat CP/AVB/recovery compatibility as specific remaining
+engineering checks, not a reason to restart generic phone audits.
+
 ## Verified Android 16 firmware at the EXISTING bootloader revision
 
 **Key finding (Samsung release history and EUX archive):** Samsung released
@@ -109,18 +135,14 @@ and the recovery installer function. The existing TWRP booting under
 Android 15 is not evidence of GZH3 A16 boot. Until all are proven,
 this route is NOT FLASH-APPROVED.
 
-B. FALLBACK: if GZH3 requires a later BL, RP O=24 or intermediate version
-may prohibit downgrade. Verify exact device Download Mode RP and prove
-an already-unlocked SM-S901B remains unlockable/unlocked with that
-specific BL BEFORE any BL write. Android 16 One UI 8 official updates
-are known to remove OEM unlock ability; a previously unlocked phone's
-exact behavior remains unproven. The firmware switch is not a harmless
-software prerequisite. Without evidence it is an unacceptable route.
+B. EXCLUDED: advancing the bootloader from FYI3 binary I to GZH3 binary O
+or any other revision is outside the agreed reversible installation path.
+If the newer bootloader is necessary, rework the Android 16 boot/kernel
+firmware combination rather than making that upgrade a prerequisite.
 
-C. If neither A nor B qualifies, development must retain HOST-only
-status or rebase to a demonstrably compatible native firmware.
-Do not deploy a ROM whose required bootloader would eliminate the
-ability to boot custom images on the S901B.
+C. If the retained-I path cannot be qualified, retain HOST-only status
+or rebase/adapt to compatible Android 16 firmware. Never require a bootloader
+upgrade that breaks the agreed TachyonOS FYI3 recovery route.
 
 ## Measurable release gates
 
@@ -131,13 +153,16 @@ ability to boot custom images on the S901B.
   v3.4.1 kernel boot/module load are documented and previously tested.
   Only the exact currently installed low-level BL/CP revisions and
   Download Mode OEM LOCK/RP state merit a fresh pre-flash cross-check.
-- G2 BOOTLOADER HARD BLOCK: real GZH3 boot-chain compatibility with
-  retained A15 BL OR safe unlock-persistent updated BL, measured.
+- G2 BOOTLOADER HARD BLOCK: real GZH3 (or adapted Android 16) boot-chain
+  compatibility with the **retained TachyonOS FYI3 bootloader**. BL upgrade
+  is not an accepted alternative.
 - G3 CP AND AVB HARD BLOCK: native GZH3 vendor RIL/modem operation,
   AVB/rollback, FBE/metadata behavior.
 - G4 RECOVERY HARD BLOCK: known compatible legacy OTA update-binary
   invocation, group_basic mapping and five logical block updates.
-- G5 FIRST INSTALL: full external backups; Format Data necessary.
+- G5 FIRST INSTALL/RETURN: full external backups, qualified TachyonOS FYI3
+  restore including ROM and matched boot-chain images, and Format Data if
+  required. No promise of preserving userdata across A16 -> A15.
 - G6 BOARD: normal-boot, data, fingerprint, RIL/IMS, NFC, camera,
   vendor modules, enforcing policy/hardware functionality, recovery.
 - Only after G0-G6 may someone review removing E3099 or issuing an

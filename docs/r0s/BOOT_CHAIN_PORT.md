@@ -172,3 +172,20 @@ Primary sources:
 - https://s-update.samsungvn.com/devices/SM-S901B
 Do NOT instruct stock GZH3 preflash or direct current-device A15
 TWRP install in the absence of those qualifications.
+
+## Retained-BL reversible route is mandatory (decision 2026-10-13)
+
+The project's selected installation path **retains the working unlocked
+TachyonOS FYI3 bootloader (I = 18)**. Do not propose advancing BL to GZH3
+O = 24. Device-specific Android 16 S901B evidence (including LineageOS 23.2's
+FYI3 prerequisite and Samsung's Android 16 GYI7 binary-I firmware) supports
+preserving a binary-I bootloader as a valid *development strategy*, but
+does not prove this particular GZH3 kernel boots with our unchanged FYI3 BL.
+
+Any needed GZH3 incompatibility must be handled within a compatible A16
+boot/kernel/vendor design, not by breaking the user's BL rollback policy.
+Require an independently usable path back to the existing FYI3 TachyonOS
+ROM: matched logical partitions/boot chain, relevant vbmeta and the working
+TWRP, with saved backups. Data may need format/restore; **reversible ROM
+firmware is not the same as guaranteed preservation of Android userdata**.
+E3099 remains until the future A16 install and A15 return path are proven.
