@@ -1,4 +1,5 @@
-packaging-only
-source=ExtremeKRNL-v2.5
+a16-gzh3-ci
+kernel=ExtremeKRNL-v2.5
 ksunext=v3.4.1
-rebuild_kernel=false
+mode=cache-first-compile-once
+result=host-zip-board-deferred
