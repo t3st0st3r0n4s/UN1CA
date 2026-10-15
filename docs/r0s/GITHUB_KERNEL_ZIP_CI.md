@@ -4,12 +4,12 @@ Branch: `sixteen-r0s-kernel-ci`. Stable `sixteen-r0s` unchanged.
 
 ## Proven cloud compilation
 
-The pinned A16 ExtremeKRNL `build.sh -m r0s -k` completed successfully
+The previously pinned A16 ExtremeKRNL `build.sh -m r0s -k` completed successfully
 in [Actions run 38706744894](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38706744894).
 No replacement kernel builder was introduced.
 
 - ExtremeKRNL: `78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95` (v2.5 / 5.10.269)
-- KernelSU Next: `8f902aeb16033024143ae36cf711df902cf02fae` (v3.4.1, **built-in**)
+- KernelSU Next: the newest **stable GitHub Release** of `KernelSU-Next/KernelSU-Next`, resolved once per workflow run to its immutable commit (built-in `CONFIG_KSU=y`). At the 15 October 2026 upgrade: **v3.4.2**, commit `4c706b5938665866ebe16944a481a7b91e3396af`.
 
 ## Permanent GZH3 donor images
 
@@ -44,7 +44,7 @@ entire target-files ZIP or Git LFS assets are needed.
    for diagnostics only; compiler-dependent module hashes are **not**
    equality gates. The kernel-only ZIP does not update `vendor_dlkm`.
 5. Upload canonical-format
-   `ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.1_<build-date>.zip`,
+   `ExtremeKRNL-v2.5_r0s_KSUNext-<resolved-release>_<build-date>.zip`,
    SHA256SUMS and provenance **as an Actions artifact**, not a GitHub Release.
 
 Commands unchanged in the original host production path.
@@ -59,7 +59,7 @@ Do not flash based solely on an Actions green check.
 
 ## Reuse compilation automatically
 
-There is **one** workflow and **one** pinned compiler cache key.
+There is **one** workflow; the compiler cache is keyed by the unchanged ExtremeKRNL source commit, **resolved KernelSU Next commit**, and runner environment. Updating KernelSU automatically creates a new cache entry.
 
 - **Cache hit** for pinned ExtremeKRNL/KernelSU + runner environment: skip `build.sh`,
   reconcile and package directly.
