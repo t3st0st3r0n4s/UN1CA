@@ -165,6 +165,16 @@ jobs:
             python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test
           python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
 
+      - name: Restore exact pinned A16 kernel compilation
+        id: compiler_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s
+            ${{ runner.temp }}/a16-extremekrnl/out/.config
+          key: r0s-a16-extremekrnl-78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95-ksu-8f902aeb16033024143ae36cf711df902cf02fae-ubuntu2404-v1
+          lookup-only: false
+
       - name: Reuse existing ExtremeKRNL r0s kernel + ZIP build
         shell: bash
         run: |
@@ -172,7 +182,11 @@ jobs:
           SRC="$RUNNER_TEMP/a16-extremekrnl"
           # This is the exact invocation in UN1CA's existing
           # scripts/r0s/build_extremekrnl_a16.sh; no forked build system.
-          (cd "$SRC" && bash ./build.sh -m r0s -k)
+          if [[ "${{ steps.compiler_cache.outputs.cache-hit }}" != "true" ]]; then
+            (cd "$SRC" && bash ./build.sh -m r0s -k)
+          else
+            echo 'EXACT KERNEL/KSU CACHE HIT: skipping full kernel compile.'
+          fi
           grep -Fxq 'CONFIG_KSU=y' "$SRC/out/.config"
           grep -Fxq 'CONFIG_MODVERSIONS=y' "$SRC/out/.config"
           test -s "$SRC/build/out/r0s/boot.img"
@@ -183,6 +197,32 @@ jobs:
           done
           printf 'source=%s\nksunext=%s\nbuild_only=true\nrom_integrated=false\nboard_pass=false\n' \
             "$KERNEL_PIN" "$KSU_PIN" > "$SRC/build/out/r0s/.r0s_a16_kernel_host_pass"
+
+      - name: Save pinned compilation immediately (before packaging gates)
+        if: steps.compiler_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s
+            ${{ runner.temp }}/a16-extremekrnl/out/.config
+          key: r0s-a16-extremekrnl-78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95-ksu-8f902aeb16033024143ae36cf711df902cf02fae-ubuntu2404-v1
+
+      - name: Upload retained compiler outputs for independent inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: UN1CA-A16-ExtremeKRNL-v2.5-KSUNext-v3.4.1-COMPILED-NOT-FLASHABLE
+          path: |
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/boot.img
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/vendor_boot.img
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/dtbo.img
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/dtb.img
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/fingerprint.ko
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/fingerprint_sysfs.ko
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/input_booster_lkm.ko
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/sec_debug_coredump.ko
+            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/wlan.ko
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Reconcile current compiled A16 kernel with pinned GZH3 donors
         shell: bash
