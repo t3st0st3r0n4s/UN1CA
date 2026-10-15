@@ -121,6 +121,8 @@ def inspect_inputs():
         digest(file)
         need(file.stat().st_size <= CAP[name], "image over physical cap: " + name)
         need((WORK / "kernel" / name).is_file(), "missing native work image: " + name)
+    need(digest(CAND / "dtbo.img") == digest(ART / "dtbo.img"),
+         "candidate DTBO differs from current compilation")
     for name in MODULES:
         path = CAND / "vendor_dlkm/lib/modules" / name
         need(digest(path) == digest(ART / "modules/lib/modules" / name),
