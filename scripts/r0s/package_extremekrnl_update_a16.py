@@ -36,7 +36,7 @@ WORK = ROOT / "out/target/r0s/work_dir"
 UPDATE_BINARY = KERNEL / "build/update-binary"
 UPDATER_SOURCE = KERNEL / "build/updater-script"
 KERNEL_PIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
-KSU_PIN = selected_ksu_pin()
+KSU_PIN = selected_ksu_pin(required=False)
 A15_A16_UPDATER_GIT_BLOB = "0a6085a9251b664ed0b591d8457ca2c01afaaa8e"
 A16_SCRIPT_GIT_BLOB = "3973dff6043769d063b792c78739c5236a8e808a"
 BOOTS = ("boot", "vendor_boot", "dtbo")
@@ -394,22 +394,23 @@ def self_test():
          "unexpected kernel ZIP layout")
     need(set(BOOTS) == {"boot", "vendor_boot", "dtbo"},
          "A15-to-A16 ZIP image list drift")
-    need(len(KERNEL_PIN) == len(KSU_PIN) == 40 and len(A15_A16_UPDATER_GIT_BLOB) == 40,
+    need(len(KERNEL_PIN) == 40 and (KSU_PIN is None or len(KSU_PIN) == 40)
+         and len(A15_A16_UPDATER_GIT_BLOB) == 40,
          "bad provenance pin")
     need(b"E3099" not in source_script() if UPDATER_SOURCE.is_file()
          else True, "E3099 was added to the kernel updater")
     # Pure naming fixtures: CI must not need an actual kernel checkout.
     need(native_name_with_ksu_version(
         "ExtremeKRNL-v2.5_r0s_KSU_13-10-2026_21-00-00.zip",
-        "v3.4.1") ==
-        "ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.1_13-10-2026_21-00-00.zip",
+        "v9.8.7") ==
+        "ExtremeKRNL-v2.5_r0s_KSUNext-v9.8.7_13-10-2026_21-00-00.zip",
         "source-version filename formatting failed")
     need(native_name_with_ksu_version(
         "ExtremeKRNL-v3.0_r0s_KSU_14-10-2026_02-03-04.zip",
         "v4.0.0") ==
         "ExtremeKRNL-v3.0_r0s_KSUNext-v4.0.0_14-10-2026_02-03-04.zip",
         "filename was incorrectly pinned to a specific KSU version")
-    for bad in ("v3.4.1/other", "3.4.1", ""):
+    for bad in ("v9.8.7/other", "9.8.7", ""):
         try:
             native_name_with_ksu_version(
                 "ExtremeKRNL-v2.5_r0s_KSU_13-10-2026_21-00-00.zip", bad)
@@ -428,6 +429,8 @@ def main():
     args = p.parse_args()
     if args.mode == "self-test":
         self_test()
+    elif KSU_PIN is None:
+        raise Blocked("KernelSU Next compiled provenance missing")
     elif args.mode == "check":
         check(args.sha256)
     elif args.mode == "ci-build":
