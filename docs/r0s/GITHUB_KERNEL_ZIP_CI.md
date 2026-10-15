@@ -57,52 +57,23 @@ but is not host/board-qualified until a complete new Actions run succeeds.
 Even then **A16 physical boot and KSU/runtime remains BOARD DEFERRED**.
 Do not flash based solely on an Actions green check.
 
-## Reuse compilation
+## Reuse compilation automatically
 
-A pinned GitHub Actions cache stores `build/out/r0s` and the compiled
-`.config` immediately after successful kernel compilation, **before** any
-reconciliation/packaging failure. A cache hit skips `build.sh`.
+There is **one** workflow and **one** pinned compiler cache key.
 
-Automatic push triggers are deliberately limited to a single explicit
-`ci_inputs/r0s_a16_kernel_ci.run` marker; changing packaging scripts does
-not trigger 30–40 minute compilations. The cache key changes only when the
-kernel/KSU sources or relevant compiler environment changes.
+- **Cache hit** for pinned ExtremeKRNL/KernelSU + runner environment: skip `build.sh`,
+  reconcile and package directly.
+- **Cache miss** (including first run or GitHub cache eviction): run the original
+  `build.sh -m r0s -k` **once**, save `build/out/r0s` and `out/.config`
+  immediately, and continue reconciliation/packaging.
+- A failed packaging step does **not** discard the saved compilation.
+- An actual kernel/KernelSU source or compiler environment update requires
+  a new cache key and one new compilation.
 
-## Packaging-only default — no repeated compilation
-
-Changes to scripts **do not trigger the expensive workflow**.
-Manual runs now default to `rebuild_kernel=false`. The runner uses its
-pinned Actions cache, or downloads the retained host compilation Release.
-If neither is present, it fails rather than compiling automatically.
-Only explicitly selecting `rebuild_kernel=true` starts a kernel rebuild.
-
-**One-time seed from existing successful October 13 host build**
-(no recompilation, no entire ROM tree):
-
-```bash
-cd ~/android/UN1CA
-(
-  cd out/kernel_tmp-exynos2200
-  tar -czf ../r0s-a16-compiled-v3.4.1.tar.gz \
-    out/.config \
-    build/out/r0s/boot.img \
-    build/out/r0s/vendor_boot.img \
-    build/out/r0s/dtb.img \
-    build/out/r0s/dtbo.img \
-    build/out/r0s/modules/lib/modules/{fingerprint,fingerprint_sysfs,input_booster_lkm,sec_debug_coredump,wlan}.ko \
-    build/out/r0s/ExtremeKRNL-*_r0s_KSU_*.zip
-)
-gh release create r0s-a16-extremekrnl-v2.5-ksunext-v3.4.1-compiled \
-  out/r0s-a16-compiled-v3.4.1.tar.gz \
-  --repo t3st0st3r0n4s/UN1CA --target sixteen-r0s-kernel-ci \
-  --prerelease --title "A16 r0s pinned compiled kernel v3.4.1" \
-  --notes "Previously compiled ExtremeKRNL v2.5 / built-in KSU Next v3.4.1; input for experimental package-only CI. No device qualification."
-```
-
-This is a public Release asset containing compiled firmware binaries, not private
-keys or EFS. It need only be uploaded once. Subsequent packaging changes
-reuse the compiler cache; updating the actual kernel/KSU sources still
-requires **one explicitly requested** new build.
+No permanent compiled-kernel Release, separate host seeding procedure,
+or missing-asset failure. `workflow_dispatch` and the explicit
+`ci_inputs/r0s_a16_kernel_ci.run` marker trigger builds, not ordinary
+packaging-script commits. Keep the native GZH3 donor Release unchanged.
 
 ## Manual run
 
