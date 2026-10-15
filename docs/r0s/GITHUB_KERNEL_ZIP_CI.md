@@ -39,10 +39,10 @@ entire target-files ZIP or Git LFS assets are needed.
    `SIGN_IMAGE_WITH_AVB` hash-footer parameters and public UN1CA test key.
    Carries the **original** ExtremeKRNL `update-binary` and
    `updater-script`, unchanged.
-4. Require all five rebuilt vendor module SHA-256 values to equal
-   the pinned installed UN1CA A16 `vendor_dlkm` hashes from
-   `scripts/r0s/integrate_extremekrnl_a16.py`. Kernel-only ZIP must
-   never silently introduce different vendor modules.
+4. Check all five compiled modules are present and verify the
+   module/version structure in the reconciler. Record module SHA-256
+   for diagnostics only; compiler-dependent module hashes are **not**
+   equality gates. The kernel-only ZIP does not update `vendor_dlkm`.
 5. Upload canonical-format
    `ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.1_<build-date>.zip`,
    SHA256SUMS and provenance **as an Actions artifact**, not a GitHub Release.
@@ -56,6 +56,17 @@ reconciliation → AVB → canonical packaging integration has been committed
 but is not host/board-qualified until a complete new Actions run succeeds.
 Even then **A16 physical boot and KSU/runtime remains BOARD DEFERRED**.
 Do not flash based solely on an Actions green check.
+
+## Reuse compilation
+
+A pinned GitHub Actions cache stores `build/out/r0s` and the compiled
+`.config` immediately after successful kernel compilation, **before** any
+reconciliation/packaging failure. A cache hit skips `build.sh`.
+
+Automatic push triggers are deliberately limited to a single explicit
+`ci_inputs/r0s_a16_kernel_ci.run` marker; changing packaging scripts does
+not trigger 30–40 minute compilations. The cache key changes only when the
+kernel/KSU sources or relevant compiler environment changes.
 
 ## Manual run
 
