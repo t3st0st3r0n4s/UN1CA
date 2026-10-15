@@ -6,7 +6,6 @@ on:
       - sixteen-r0s-kernel-ci
     paths:
       - .github/workflows/r0s-kernel-zip.yml
-      - scripts/r0s/ci_hold_raw_kernel_zip.py
       - scripts/r0s/reconcile_extremekrnl_gzh3_a16.py
       - scripts/r0s/package_extremekrnl_update_a16.py
       - ci_inputs/r0s_a16_gzh3_donors.sha256
@@ -29,21 +28,17 @@ jobs:
       KSU_PIN: 8f902aeb16033024143ae36cf711df902cf02fae
       KERNEL_REMOTE: https://github.com/milxnaq/android_kernel_samsung_s5e9925.git
     steps:
-      - name: Read only the A16 CI helper from the exact triggering commit
+      - name: Read A16 signed GZH3 source contract and SHA256 pin
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p scripts/r0s target/r0s/installer ci_inputs
-          curl --fail --location --retry 3 --silent --show-error \
-            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/scripts/r0s/ci_hold_raw_kernel_zip.py" \
-            -o scripts/r0s/ci_hold_raw_kernel_zip.py
+          mkdir -p target/r0s/installer ci_inputs
           curl --fail --location --retry 3 --silent --show-error \
             "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/target/r0s/installer/assertions.edify" \
             -o target/r0s/installer/assertions.edify
           curl --fail --location --retry 3 --silent --show-error \
             "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/ci_inputs/r0s_a16_gzh3_donors.sha256" \
             -o ci_inputs/r0s_a16_gzh3_donors.sha256
-          python3 scripts/r0s/ci_hold_raw_kernel_zip.py --self-test
           grep -Fq 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' \
             target/r0s/installer/assertions.edify
 
