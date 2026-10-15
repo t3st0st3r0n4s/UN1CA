@@ -1,0 +1,27 @@
+name: One-time r0s A16 pre-release title tidy
+
+on:
+  push:
+    branches: [sixteen-r0s-kernel-ci]
+    paths: [ci_inputs/r0s_release_title_once]
+
+permissions:
+  contents: write
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update existing release title and notes only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: r0s-a16-gzh3-ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.2_15-10-2026_13-34-07
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --repo "$REPO" \
+            --title 'ExtremeKRNL v2.5 | KernelSU Next v3.4.2 | r0s A16' \
+            --notes 'SM-S901B / GZH3. HOST PASS; A16 device validation pending. Extract the .tar.xz for the TWRP ZIP.'
+          test "$(gh release view "$TAG" --repo "$REPO" --json name --jq .name)" =             'ExtremeKRNL v2.5 | KernelSU Next v3.4.2 | r0s A16'
+          test "$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets | length')" = 1
