@@ -258,8 +258,8 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" \
               --prerelease \
-              --title "$name — A16 HOST ONLY" \
-              --notes "SM-S901B r0s / native GZH3 Android 16. ExtremeKRNL built-in KernelSU Next $KSU_TAG. Download the .tar.xz, extract the single TWRP recovery .zip. A16 physical boot and runtime validation are deferred."
+              --title "ExtremeKRNL v2.5 | KernelSU Next $KSU_TAG | r0s A16" \
+              --notes "SM-S901B / GZH3. HOST PASS; A16 device validation pending. Extract the .tar.xz for the TWRP ZIP."
           fi
           gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
             | grep -Fxq "$name.tar.xz"
