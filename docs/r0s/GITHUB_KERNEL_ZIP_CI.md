@@ -43,19 +43,21 @@ entire target-files ZIP or Git LFS assets are needed.
    module/version structure in the reconciler. Record module SHA-256
    for diagnostics only; compiler-dependent module hashes are **not**
    equality gates. The kernel-only ZIP does not update `vendor_dlkm`.
-5. Upload canonical-format
-   `ExtremeKRNL-v2.5_r0s_KSUNext-<resolved-release>_<build-date>.zip`,
-   SHA256SUMS and provenance **as an Actions artifact**, not a GitHub Release.
+5. Upload **only one** `.tar.xz` containing the verified, flashable
+   `ExtremeKRNL-v2.5_r0s_KSUNext-<resolved-release>_<build-date>.zip`.
+   Compiled images and diagnostic provenance remain in the build/cache, not in
+   the download. GitHub Actions adds its mandatory outer artifact ZIP;
+   extract it, then extract the `.tar.xz` to get the actual recovery ZIP.
 
 Commands unchanged in the original host production path.
 The cloud-specific path avoids needing or inventing a full ROM workdir
 or synthetic GZH3 firmware extraction marker.
 
-**Qualification:** the cloud **compiler** has passed once; the
-reconciliation → AVB → canonical packaging integration has been committed
-but is not host/board-qualified until a complete new Actions run succeeds.
-Even then **A16 physical boot and KSU/runtime remains BOARD DEFERRED**.
-Do not flash based solely on an Actions green check.
+**Qualification:** complete cloud GZH3 reconciliation, signing and
+five-file recovery ZIP packaging passed in [v3.4.1 run 38732474957](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38732474957)
+and [v3.4.2 run 38739760017](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38739760017).
+**A16 physical boot and KernelSU runtime remain BOARD DEFERRED.**
+The simplified single-`.tar.xz` publishing layout has not yet been exercised in Actions.
 
 ## Reuse compilation automatically
 
