@@ -17,6 +17,8 @@ import subprocess
 import sys
 import tempfile
 
+from integrate_extremekrnl_a16 import selected_ksu_pin
+
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "out/kernel_tmp-exynos2200"
 ART = SRC / "build/out/r0s"
@@ -24,7 +26,7 @@ WORK = ROOT / "out/target/r0s/work_dir"
 FW = ROOT / "out/fw/SM-S901B_EUX"
 DEST = ROOT / "out/r0s_A16_ExtremeKRNL_KSU_hybrid_candidate"
 KERNEL_PIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
-KSU_PIN = os.environ.get("KSU_PIN", "8f902aeb16033024143ae36cf711df902cf02fae")
+KSU_PIN = selected_ksu_pin()
 MODULES = ("fingerprint", "fingerprint_sysfs", "input_booster_lkm",
            "sec_debug_coredump", "wlan")
 FIRMWARE = "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3"
