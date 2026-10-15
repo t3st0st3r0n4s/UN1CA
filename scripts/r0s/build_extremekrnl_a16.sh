@@ -50,10 +50,10 @@ if [[ "$MODE" == --check ]]; then
   exit 0
 fi
 # Preserve any successfully compiled kernel and its source checkout.
-# A different latest-stable KernelSU version needs an explicit new build workspace;
-# never silently switch the checkout while retaining an older build marker.
+# Archive the existing built output explicitly before a version update;
+# reuse the kernel checkout, but never silently invalidate a successful build.
 [[ ! -e "$ART/.r0s_a16_kernel_host_pass" ]] ||
-  die 'successful kernel build already exists; preserve it and use a fresh build workspace for a new KernelSU release'
+  die 'successful kernel build exists; archive build/out/r0s before updating KernelSU (reuse this checkout)'
 # Match CI: GitHub's /releases/latest excludes pre-releases; pin its exact tag.
 KSU_TAG="$(python3 - <<'PY'
 import json
