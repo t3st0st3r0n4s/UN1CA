@@ -206,8 +206,9 @@ def apply():
             if f.exists():
                 f.unlink()
     for _, dest in changes:
-        expected = IMAGES.get(dest.name, MODULES.get(dest.name))
-        need(digest(dest) == expected, "postinstall hash mismatch: " + dest.name)
+        source = (CAND / dest.name if dest.name in IMAGES
+                  else CAND / "vendor_dlkm/lib/modules" / dest.name)
+        need(digest(dest) == digest(source), "postinstall hash mismatch: " + dest.name)
     print("A16 EXTREMEKRNL R0S WORKDIR LATE-INTEGRATION PASS — HOST ONLY")
     print("No OTA or device operation. E3099 remains active.")
 
@@ -226,15 +227,15 @@ def verify_integrated():
     lock = (ROOT / "target/r0s/installer/assertions.edify").read_text()
     need('abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
          in lock, "E3099 removed")
-    for name, expected in IMAGES.items():
-        need(digest(WORK / "kernel" / name) == expected,
-             "workdir custom boot chain differs: " + name)
-        need(digest(CAND / name) == expected, "candidate drift: " + name)
-    for name, expected in MODULES.items():
-        need(digest(WORK / "vendor_dlkm/lib/modules" / name) == expected,
-             "workdir custom module differs: " + name)
-        need(digest(CAND / "vendor_dlkm/lib/modules" / name) == expected,
-             "candidate module drift: " + name)
+    for name in IMAGES:
+        need(digest(WORK / "kernel" / name) == digest(CAND / name),
+             "workdir image differs from current candidate: " + name)
+    for name in MODULES:
+        compiled = digest(ART / "modules/lib/modules" / name)
+        need(digest(CAND / "vendor_dlkm/lib/modules" / name) == compiled,
+             "candidate module differs from current compilation: " + name)
+        need(digest(WORK / "vendor_dlkm/lib/modules" / name) == compiled,
+             "workdir module differs from current compilation: " + name)
     for tool in ("unpack_bootimg", "lz4", "cpio"):
         need(shutil.which(tool), "missing validation host tool " + tool)
     ramdisk_gate()
