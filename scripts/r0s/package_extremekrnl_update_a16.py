@@ -333,8 +333,8 @@ def ci_build():
                                    capture_output=True, text=True)
             need(check.returncode == 0 and signed.stat().st_size == CAPS[part],
                  "invalid signed A16 image/partition length: " + part)
-            need(("Partition Name:          " + part) in check.stdout or
-                 ("Partition Name: " + part) in check.stdout,
+            need(re.search(r"Partition Name:\\s+" + re.escape(part) + r"(?:\\s|$)",
+                           check.stdout, re.M) is not None,
                  "signed image partition name mismatch: " + part)
             signed_hashes[part] = digest(signed)
 
