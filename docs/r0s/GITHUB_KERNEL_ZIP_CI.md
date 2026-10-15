@@ -59,7 +59,8 @@ records it in `.r0s_a16_kernel_host_pass`. Host reconciliation, packaging,
 integration and post-build audit reuse that recorded pin; they do not
 silently select a newer release mid-build. `--check` and `--self-test`
 remain offline. A completed host build is protected from an implicit source
-switch; a newer KSU version requires a separate clean build workspace.
+switch; archive its previous `build/out/r0s` output explicitly before updating,
+then reuse the existing kernel checkout (no duplicate clone).
 Previously pinned ROM integration image/module hashes remain explicit
 safety gates and are **not** automatically qualified for a new KSU build.
 
