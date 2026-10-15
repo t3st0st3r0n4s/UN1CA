@@ -1,0 +1,4 @@
+packaging-only
+source=ExtremeKRNL-v2.5
+ksunext=v3.4.1
+rebuild_kernel=false
