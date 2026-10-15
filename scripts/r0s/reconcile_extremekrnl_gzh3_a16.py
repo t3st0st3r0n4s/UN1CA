@@ -26,7 +26,7 @@ WORK = ROOT / "out/target/r0s/work_dir"
 FW = ROOT / "out/fw/SM-S901B_EUX"
 DEST = ROOT / "out/r0s_A16_ExtremeKRNL_KSU_hybrid_candidate"
 KERNEL_PIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
-KSU_PIN = selected_ksu_pin()
+KSU_PIN = selected_ksu_pin(required=False)
 MODULES = ("fingerprint", "fingerprint_sysfs", "input_booster_lkm",
            "sec_debug_coredump", "wlan")
 FIRMWARE = "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3"
@@ -128,7 +128,7 @@ def fixture():
                "--ramdisk_type", "3", "--vendor_ramdisk_fragment", "f1"]
     assert vals(example, "--vendor_ramdisk_fragment") == ["f0", "f1"]
     assert vals(substitute(example, "--dtb", "new"), "--dtb") == ["new"]
-    assert len(KERNEL_PIN) == len(KSU_PIN) == 40
+    assert len(KERNEL_PIN) == 40 and (KSU_PIN is None or len(KSU_PIN) == 40)
     print("S901B A16 GZH3/custom kernel hybrid repack self-test PASS")
 
 
@@ -137,6 +137,8 @@ def main():
         fixture()
         return
     ci_donors = sys.argv[1:] == ["--ci-donors"]
+    if KSU_PIN is None:
+        hold("KernelSU Next compiled provenance missing")
     if sys.argv[1:] and not ci_donors:
         hold("usage: reconcile_extremekrnl_gzh3_a16.py [--self-test|--ci-donors]")
     for binary in ("unpack_bootimg", "lz4", "cpio", "modinfo"):
