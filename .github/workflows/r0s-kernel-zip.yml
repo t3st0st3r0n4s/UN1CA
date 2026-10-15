@@ -212,23 +212,6 @@ jobs:
             ${{ runner.temp }}/a16-extremekrnl/out/.config
           key: ${{ env.KSU_CACHE_KEY }}
 
-      - name: Upload retained compiler outputs for independent inspection
-        uses: actions/upload-artifact@v4
-        with:
-          name: UN1CA-A16-ExtremeKRNL-v2.5-KSUNext-${{ env.KSU_TAG }}-COMPILED-NOT-FLASHABLE
-          path: |
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/boot.img
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/vendor_boot.img
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/dtbo.img
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/dtb.img
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/fingerprint.ko
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/fingerprint_sysfs.ko
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/input_booster_lkm.ko
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/sec_debug_coredump.ko
-            ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/modules/lib/modules/wlan.ko
-          if-no-files-found: error
-          retention-days: 7
-
       - name: Reconcile current compiled A16 kernel with pinned GZH3 donors
         shell: bash
         run: |
@@ -243,19 +226,23 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH"
           python3 scripts/r0s/package_extremekrnl_update_a16.py ci-build
           python3 scripts/r0s/package_extremekrnl_update_a16.py ci-verify
-          find out -maxdepth 1 -name 'ExtremeKRNL-*_r0s_KSUNext-*.zip' -exec sha256sum {} \; \
-            | tee kernel-zip-sha256.txt
-          cat kernel-zip-sha256.txt >> "$GITHUB_STEP_SUMMARY"
-          echo 'A16 GZH3 cloud packaging HOST PASS; BOARD DEFERRED' >> "$GITHUB_STEP_SUMMARY"
+          # GitHub Actions artifacts always download as a ZIP. Keep their
+          # *only* payload a non-flashable .tar.xz containing the flashable ZIP.
+          shopt -s nullglob
+          zips=(out/ExtremeKRNL-*_r0s_KSUNext-*.zip)
+          [[ "${#zips[@]}" -eq 1 ]] || { echo 'Expected one verified kernel ZIP' >&2; exit 2; }
+          name="$(basename "${zips[0]}")"
+          tar -C out -cJf "out/${name%.zip}.tar.xz" "$name"
+          [[ "$(tar -tJf "out/${name%.zip}.tar.xz")" == "$name" ]]
+          sha256sum "${zips[0]}" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Download artifact -> extract .tar.xz -> flash inner .zip; A16 BOARD DEFERRED' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload reconciled signed kernel ZIP (not a release)
+      - name: Upload only compressed flashable ZIP container
         uses: actions/upload-artifact@v4
         with:
-          name: UN1CA-A16-GZH3-ExtremeKRNL-KSUNext-HOST-ONLY
-          path: |
-            out/ExtremeKRNL-*_r0s_KSUNext-*.zip
-            out/ExtremeKRNL-*_r0s_KSUNext-*.provenance.json
-            kernel-zip-sha256.txt
+          name: UN1CA-A16-GZH3-KSUNext-${{ env.KSU_TAG }}-TAR-XZ-HOST-ONLY
+          path: out/ExtremeKRNL-*_r0s_KSUNext-*.tar.xz
+          compression-level: 0
           if-no-files-found: error
           retention-days: 7
 
