@@ -5,8 +5,6 @@ on:
     branches: [sixteen-r0s-kernel-ci]
     paths:
       - 'ci_inputs/a16_kernel_reference.json'
-      - '.github/workflows/r0s-kernel-reference-zip.yml'
-      - 'scripts/r0s/ci_repackage_kernel_reference.py'
   workflow_dispatch:
 
 permissions:
