@@ -158,7 +158,7 @@ def check_inputs():
     lock = (ROOT / "target/r0s/installer/assertions.edify").read_text()
     need('abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
          in lock, "installer E3099 protection absent")
-    print("KSU NEXT 3.4.1 ONE-SHOT MANAGER SOURCE/WORKDIR CHECK PASS")
+    print("KernelSU Next one-shot manager source/workdir CHECK PASS")
 
 
 def apk(release):
@@ -234,10 +234,13 @@ def write_metadata(file, data):
         temporary.unlink(missing_ok=True)
 
 
-def verify():
+def verify(release=None):
     check_inputs()
-    need(hash_file(PAYLOAD) == DIGEST, "manager payload not pinned v3.4.1 APK")
-    need(INSTALLER.read_bytes() == installer_bytes(), "live manager installer drift")
+    release = release or manager_release()
+    need(hash_file(PAYLOAD) == release["sha256"],
+         "manager payload SHA256 differs from matched KernelSU release")
+    need(INSTALLER.read_bytes() == installer_bytes(release["build"]),
+         "live manager installer drift")
     need(RC.read_bytes() == init_bytes(), "live init trigger drift")
     fs = FS_CONFIG.read_text().splitlines()
     ctx = FILE_CONTEXT.read_text().splitlines()
@@ -246,7 +249,7 @@ def verify():
     for key, value in CONTEXTS.items():
         need(ctx.count(key + " " + value) == 1,
              "file_context entry missing/drift: " + key)
-    print("A16 KSU NEXT V3.4.1 MANAGER AUTO-INSTALL WORKDIR VERIFY PASS")
+    print("A16 KernelSU Next " + release["tag"] + " MANAGER WORKDIR VERIFY PASS")
     print("pm install -r once after boot / u:r:ksu:s0 / E3099 ACTIVE")
     print("A16 root/SELinux runtime and phone boot still UNVERIFIED")
 
@@ -268,14 +271,15 @@ def apply(existing=False):
              "--verify"], env={**os.environ, "PATH": str(ROOT / "out/tools/bin")
                                  + os.pathsep + os.environ.get("PATH", "")})
         need(check.returncode == 0, "existing kernel integration not verified")
-    package = apk()
-    ensure_payload(package, PAYLOAD, expected=DIGEST)
-    ensure_payload(installer_bytes(), INSTALLER)
+    release = manager_release()
+    package = apk(release)
+    ensure_payload(package, PAYLOAD, expected=release["sha256"])
+    ensure_payload(installer_bytes(release["build"]), INSTALLER)
     ensure_payload(init_bytes(), RC)
     write_metadata(FS_CONFIG, prepare_text(FS_CONFIG.read_text(), ENTRIES))
     write_metadata(FILE_CONTEXT,
                    prepare_text(FILE_CONTEXT.read_text(), CONTEXTS))
-    verify()
+    verify(release)
     if existing:
         print("EXISTING WORKDIR UPDATED — no ROM/kernel compilation, no .completed rewrite")
     else:
@@ -286,8 +290,8 @@ def self_test():
     read_manifest()
     installer_bytes()
     init_bytes()
-    need(len(DIGEST) == 64 and len(ENTRIES) == 5 and len(CONTEXTS) == 5,
-         "pin/schema test failed")
+    need(len(ENTRIES) == 5 and len(CONTEXTS) == 5,
+         "manager layout/schema test failed")
     need("on property:sys.boot_completed=1" in init_bytes().decode(),
          "init trigger missing")
     print("KSU Next A16 manager delivery self-test PASS (no download or device)")
