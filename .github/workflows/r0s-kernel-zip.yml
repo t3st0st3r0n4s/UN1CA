@@ -1,6 +1,13 @@
 name: A16 r0s GZH3 ExtremeKRNL kernel ZIP (HOST ONLY)
 
 on:
+  # Manual marker edit is the only trigger while this workflow stays off
+  # the repository's default branch (GitHub requires default for dispatch).
+  push:
+    branches:
+      - sixteen-r0s-kernel-ci
+    paths:
+      - ci_inputs/r0s_a16_kernel_ci.run
   workflow_dispatch:
 
 permissions:
