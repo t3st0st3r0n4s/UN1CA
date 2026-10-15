@@ -52,14 +52,14 @@ def sha(path: Path):
 
 
 def blob(content: bytes):
-    return hashlib.sha1(b"blob " + str(len(content)).encode() + b"\\0" + content).hexdigest()
+    return hashlib.sha1(b"blob " + str(len(content)).encode() + b"\0" + content).hexdigest()
 
 
 def cmd(*argv, stdin=None, check=True):
     r = subprocess.run(argv, input=stdin, text=True, capture_output=True)
     if check:
         need(r.returncode == 0, "command failed: " + " ".join(argv[:4])
-             + "\\n" + r.stderr[-1500:])
+             + "\n" + r.stderr[-1500:])
     return r
 
 
@@ -143,7 +143,7 @@ def publish(zip_path, manifest, output):
              "existing GitHub release reference differs from the local host ZIP")
         downloaded.unlink()
 
-    content = json.dumps(manifest, indent=2, sort_keys=True) + "\\n"
+    content = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
     api = "repos/" + REPO + "/contents/ci_inputs/a16_kernel_reference.json"
     existing = cmd("gh", "api", api + "?ref=" + BRANCH, check=False)
     args = ["gh", "api", "-X", "PUT", api, "-f",
@@ -192,7 +192,7 @@ def main():
     output = root / "out/r0s_kernel_reference"
     output.mkdir(exist_ok=True)
     (output / "a16_kernel_reference.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     print("Manifest:", output / "a16_kernel_reference.json")
     if args.publish:
         publish(args.reference, manifest, output)
