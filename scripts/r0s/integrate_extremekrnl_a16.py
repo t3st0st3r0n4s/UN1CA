@@ -24,8 +24,8 @@ MARK = WORK / "kernel/.r0s_extremekrnl_a16_integrated"
 KPIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
 
 
-def selected_ksu_pin():
-    """CI supplies KSU_PIN; host consumers reuse the compiled build's marker."""
+def selected_ksu_pin(required=True):
+    """Use the exact compiled source pin, or CI's explicit pin; no old fallback."""
     pin = os.environ.get("KSU_PIN")
     if not pin:
         marker = ART / ".r0s_a16_kernel_host_pass"
@@ -34,17 +34,18 @@ def selected_ksu_pin():
                        for line in marker.read_text().splitlines()
                        if line.startswith("ksunext=")]
             if len(matches) != 1:
-                raise ValueError("compiled KernelSU Next provenance is missing/ambiguous")
+                raise ValueError("compiled KernelSU Next provenance ambiguous")
             pin = matches[0]
-        else:
-            # Backward-compatible fixture for --self-test before any build.
-            pin = "8f902aeb16033024143ae36cf711df902cf02fae"
+    if not pin:
+        if required:
+            raise ValueError("KernelSU Next build provenance missing")
+        return None
     if len(pin) != 40 or any(c not in "0123456789abcdef" for c in pin):
         raise ValueError("invalid KernelSU Next source pin")
     return pin
 
 
-SPIN = selected_ksu_pin()
+SPIN = selected_ksu_pin(required=False)
 FOTA = "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3"
 IMAGES = {
     "boot.img": "55d86a13ae72768023961c8f05ed3eec0f3b4486da3e7a081b848b1e89355ad3",
