@@ -5,10 +5,7 @@ on:
     branches:
       - sixteen-r0s-kernel-ci
     paths:
-      - .github/workflows/r0s-kernel-zip.yml
-      - scripts/r0s/reconcile_extremekrnl_gzh3_a16.py
-      - scripts/r0s/package_extremekrnl_update_a16.py
-      - ci_inputs/r0s_a16_gzh3_donors.sha256
+      - ci_inputs/r0s_a16_kernel_ci.run
   workflow_dispatch:
 
 permissions:
