@@ -84,6 +84,8 @@ def manager_release():
     from integrate_extremekrnl_a16 import selected_ksu_pin
     kernel = ROOT / "out/kernel_tmp-exynos2200/KernelSU-Next"
     pin = selected_ksu_pin()
+    need("ksu=" + pin in KERNEL_MARK.read_text().splitlines(),
+         "ROM integration and current KernelSU build use different commits")
     head = subprocess.run(["git", "-C", str(kernel), "rev-parse", "HEAD"],
                           text=True, capture_output=True, check=True).stdout.strip()
     need(head == pin, "manager and compiled KernelSU commits differ")
@@ -318,6 +320,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (Blocked, OSError, UnicodeError) as exc:
+    except (Blocked, OSError, UnicodeError, ValueError, KeyError,
+            subprocess.SubprocessError) as exc:
         print("A16 KSU MANAGER DELIVERY BLOCKED: " + str(exc), file=sys.stderr)
         sys.exit(2)
