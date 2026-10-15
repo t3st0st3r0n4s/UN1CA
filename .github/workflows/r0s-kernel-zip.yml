@@ -22,8 +22,8 @@ jobs:
     timeout-minutes: 330
     env:
       KERNEL_PIN: 78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95
-      KSU_PIN: 8f902aeb16033024143ae36cf711df902cf02fae
       KERNEL_REMOTE: https://github.com/milxnaq/android_kernel_samsung_s5e9925.git
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Read A16 signed GZH3 source contract and SHA256 pin
         shell: bash
@@ -109,9 +109,16 @@ jobs:
           test "$(git -C "$SRC" rev-parse HEAD)" = "$KERNEL_PIN"
           git -C "$SRC" submodule sync --recursive
           git -C "$SRC" submodule update --init --recursive
-          git -C "$SRC/KernelSU-Next" fetch origin tag v3.4.1
+          # Resolve the newest stable release once per run; pin that exact commit.
+          KSU_TAG="$(gh api repos/KernelSU-Next/KernelSU-Next/releases/latest --jq .tag_name)"
+          [[ "$KSU_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
+          git -C "$SRC/KernelSU-Next" fetch origin "refs/tags/$KSU_TAG:refs/tags/$KSU_TAG"
+          KSU_PIN="$(git -C "$SRC/KernelSU-Next" rev-parse "refs/tags/$KSU_TAG^{commit}")"
           git -C "$SRC/KernelSU-Next" checkout --detach "$KSU_PIN"
           test "$(git -C "$SRC/KernelSU-Next" rev-parse HEAD)" = "$KSU_PIN"
+          printf 'KSU_TAG=%s\nKSU_PIN=%s\n' "$KSU_TAG" "$KSU_PIN" >> "$GITHUB_ENV"
+          printf 'KSU_CACHE_KEY=r0s-a16-extremekrnl-%s-ksu-%s-ubuntu2404-v1\n' "$KERNEL_PIN" "$KSU_PIN" >> "$GITHUB_ENV"
+          echo "Latest stable KernelSU Next: $KSU_TAG ($KSU_PIN)"
           grep -Fxq 'CONFIG_KSU=y' "$SRC/arch/arm64/configs/ksu.config"
           grep -Fxq 'SUBLEVEL = 269' "$SRC/Makefile"
           test -f "$SRC/toolchain/mkbootimg/mkbootimg.py"
@@ -169,7 +176,7 @@ jobs:
           path: |
             ${{ runner.temp }}/a16-extremekrnl/build/out/r0s
             ${{ runner.temp }}/a16-extremekrnl/out/.config
-          key: r0s-a16-extremekrnl-78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95-ksu-8f902aeb16033024143ae36cf711df902cf02fae-ubuntu2404-v1
+          key: ${{ env.KSU_CACHE_KEY }}
           lookup-only: false
 
       - name: Reuse cached kernel or compile once on cache miss
@@ -203,12 +210,12 @@ jobs:
           path: |
             ${{ runner.temp }}/a16-extremekrnl/build/out/r0s
             ${{ runner.temp }}/a16-extremekrnl/out/.config
-          key: r0s-a16-extremekrnl-78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95-ksu-8f902aeb16033024143ae36cf711df902cf02fae-ubuntu2404-v1
+          key: ${{ env.KSU_CACHE_KEY }}
 
       - name: Upload retained compiler outputs for independent inspection
         uses: actions/upload-artifact@v4
         with:
-          name: UN1CA-A16-ExtremeKRNL-v2.5-KSUNext-v3.4.1-COMPILED-NOT-FLASHABLE
+          name: UN1CA-A16-ExtremeKRNL-v2.5-KSUNext-${{ env.KSU_TAG }}-COMPILED-NOT-FLASHABLE
           path: |
             ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/boot.img
             ${{ runner.temp }}/a16-extremekrnl/build/out/r0s/vendor_boot.img
