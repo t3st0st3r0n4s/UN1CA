@@ -254,6 +254,8 @@ def fixture():
 def main():
     if sys.argv[1:] == ["--self-test"]:
         fixture()
+    elif SPIN is None:
+        raise Hold("KernelSU Next compiled provenance missing")
     elif sys.argv[1:] in ([], ["--check"]):
         dryrun()
     elif sys.argv[1:] == ["--apply"]:
