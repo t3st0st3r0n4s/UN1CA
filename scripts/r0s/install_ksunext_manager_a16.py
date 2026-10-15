@@ -118,10 +118,10 @@ def manager_release():
             "sha256": digest.split(":", 1)[1], "tag": tag}
 
 
-def installer_bytes():
+def installer_bytes(build=None):
     text = (STAGE / "install_manager.sh").read_text()
-    need('MARKER="/data/local/tmp/.unica_ksunext_manager_33333_installed"' in text,
-         "release-specific manager marker missing")
+    need('MARKER="/data/local/tmp/.unica_ksunext_manager_@BUILD@_installed"' in text,
+         "release-derived manager marker template missing")
     need('PAYLOAD="/system/etc/unica/ksunext/manager_payload.bin"' in text,
          "system APK path changed")
     need('/system/bin/pm install -r "$TEMP"' in text, "pm install -r removed")
@@ -133,8 +133,8 @@ def installer_bytes():
     lines = [line for line in text.splitlines()
              if not line.startswith("# STAGED ONLY")
              and not line.startswith("# Derived from TachyonOS")]
-    lines.insert(1, "# KernelSU Next v3.4.1 one-shot manager installer (TachyonOS design).")
-    return ("\n".join(lines) + "\n").encode()
+    rendered = "\n".join(lines) + "\n"
+    return rendered.replace("@BUILD@", build).encode() if build else rendered.encode()
 
 
 def init_bytes():
@@ -161,27 +161,27 @@ def check_inputs():
     print("KSU NEXT 3.4.1 ONE-SHOT MANAGER SOURCE/WORKDIR CHECK PASS")
 
 
-def apk():
+def apk(release):
     CACHE.mkdir(parents=True, exist_ok=True)
-    target = CACHE / APK_NAME
+    target = CACHE / release["name"]
+    expected = release["sha256"]
     if target.exists():
-        need(hash_file(target) == DIGEST, "cached manager APK has wrong SHA256")
-        print("Pinned KSU v3.4.1 manager APK cache PASS")
+        need(hash_file(target) == expected, "cached manager APK SHA256 mismatch")
         return target
-    with tempfile.NamedTemporaryFile(prefix=".manager33333.", dir=CACHE, delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(prefix=".manager.", dir=CACHE, delete=False) as tmp:
         partial = Path(tmp.name)
     try:
         proc = subprocess.run(
             ["curl", "-fL", "--retry", "3", "--retry-delay", "2",
-             "--connect-timeout", "20", "-o", str(partial), URL],
+             "--connect-timeout", "20", "-o", str(partial), release["url"]],
             check=False)
         need(proc.returncode == 0, "manager download failed")
-        need(hash_file(partial) == DIGEST,
-             "downloaded KSU Next APK SHA256 differs from official release pin")
+        need(hash_file(partial) == expected,
+             "official KernelSU Next manager release SHA256 mismatch")
         partial.replace(target)
     finally:
         partial.unlink(missing_ok=True)
-    print("Official KSU Next v3.4.1 spoofed manager SHA256 PASS")
+    print("Official KernelSU Next " + release["tag"] + " manager SHA256 PASS")
     return target
 
 
@@ -207,7 +207,7 @@ def ensure_payload(source, dest, expected=None):
                  "refusing to replace unexpected manager script: " + str(dest))
         return
     dest.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=".ksu33333.", dir=dest.parent)
+    fd, tmp = tempfile.mkstemp(prefix=".ksu-manager.", dir=dest.parent)
     os.close(fd)
     temporary = Path(tmp)
     try:
@@ -223,7 +223,7 @@ def ensure_payload(source, dest, expected=None):
 
 
 def write_metadata(file, data):
-    fd, tmp = tempfile.mkstemp(prefix=".ksu33333.", dir=file.parent)
+    fd, tmp = tempfile.mkstemp(prefix=".ksu-manager.", dir=file.parent)
     os.close(fd)
     temporary = Path(tmp)
     try:
