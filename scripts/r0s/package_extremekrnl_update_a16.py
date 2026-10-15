@@ -27,6 +27,8 @@ import sys
 import tempfile
 import zipfile
 
+from integrate_extremekrnl_a16 import selected_ksu_pin
+
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "out/r0s_A16_GZH3_HOST_ONLY-target_files.zip"
 KERNEL = ROOT / "out/kernel_tmp-exynos2200"
@@ -34,7 +36,7 @@ WORK = ROOT / "out/target/r0s/work_dir"
 UPDATE_BINARY = KERNEL / "build/update-binary"
 UPDATER_SOURCE = KERNEL / "build/updater-script"
 KERNEL_PIN = "78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95"
-KSU_PIN = os.environ.get("KSU_PIN", "8f902aeb16033024143ae36cf711df902cf02fae")
+KSU_PIN = selected_ksu_pin()
 A15_A16_UPDATER_GIT_BLOB = "0a6085a9251b664ed0b591d8457ca2c01afaaa8e"
 A16_SCRIPT_GIT_BLOB = "3973dff6043769d063b792c78739c5236a8e808a"
 BOOTS = ("boot", "vendor_boot", "dtbo")
