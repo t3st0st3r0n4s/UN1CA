@@ -1,12 +1,13 @@
 # A16 S901B ExtremeKRNL / KernelSU Next integration
 
-**Current host version policy (15 October 2026):** `--prepare` and `--build`
-resolve the latest stable KernelSU Next GitHub Release and its exact commit,
-matching the cloud workflow. The recorded build pin is reused by downstream
-host tools. The v3.4.1 pins and hashes below document the **historical host
-qualification**, not the default version for new builds. ROM integration still
-requires separately qualified kernel-image/module hashes; the KernelSU Next
-manager APK remains separately pinned.
+**Current host version policy:** `--prepare` and `--build` resolve the
+latest stable KernelSU Next release and its exact commit, matching CI.
+Downstream reconciliation, integration, packaging and auditing consume the
+compiled build's recorded commit. Integration verifies the **current**
+reconciled images and compiled modules, not fixed hashes from another build.
+The manager APK and checksum come from the matching official KernelSU Next
+release. Earlier sections below retain build evidence, not active code policy.
+Physical Android 16 qualification remains pending.
 
 FOUND an active Android 16 Exynos 2200 custom kernel with built-in KSU:
 https://github.com/milxnaq/android_kernel_samsung_s5e9925/tree/sixteen
