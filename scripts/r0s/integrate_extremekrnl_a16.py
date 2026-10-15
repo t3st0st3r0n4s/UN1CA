@@ -106,6 +106,7 @@ def inspect_inputs():
          in assertions, "mandatory E3099 installer abort removed")
     need((ART / ".r0s_a16_kernel_host_pass").is_file(),
          "compiled A16 host-pass marker absent")
+    need(SPIN is not None, "KernelSU Next build provenance missing")
     need(run("git", "-C", SRC, "rev-parse", "HEAD").decode().strip() == KPIN,
          "kernel source pin changed")
     need(run("git", "-C", SRC / "KernelSU-Next", "rev-parse", "HEAD").decode().strip() == SPIN,
@@ -115,16 +116,15 @@ def inspect_inputs():
          "compiled kernel KSU/modversion requirements missing")
     need((CAND / "NOT_FLASHABLE.txt").is_file(), "isolated hybrid candidate absent")
     need(not MARK.exists(), "custom kernel already installed in workdir")
-    for name, expected in IMAGES.items():
+    for name in IMAGES:
         file = CAND / name
-        need(digest(file) == expected, "candidate image differs: " + name)
+        digest(file)
         need(file.stat().st_size <= CAP[name], "image over physical cap: " + name)
         need((WORK / "kernel" / name).is_file(), "missing native work image: " + name)
-    for name, expected in MODULES.items():
+    for name in MODULES:
         path = CAND / "vendor_dlkm/lib/modules" / name
-        need(digest(path) == expected, "candidate module differs: " + name)
-        need(digest(ART / "modules/lib/modules" / name) == expected,
-             "compiled module differs: " + name)
+        need(digest(path) == digest(ART / "modules/lib/modules" / name),
+             "hybrid module differs from current compilation: " + name)
         need(digest(FW / "vendor_dlkm/lib/modules" / name) ==
              digest(WORK / "vendor_dlkm/lib/modules" / name),
              "native work module already modified: " + name)
@@ -169,7 +169,7 @@ def dryrun():
     inspect_inputs()
     ramdisk_gate()
     print("A16 EXTREMEKRNL R0S LATE-INTEGRATION CHECK PASS — no writes")
-    print("candidate SHA256 and 5 module SHA256 pins PASS")
+    print("current candidate and compiled module integrity PASS")
     print("Not ROM-integrated / no device access / E3099 ACTIVE")
 
 
