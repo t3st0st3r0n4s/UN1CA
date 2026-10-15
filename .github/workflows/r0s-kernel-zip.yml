@@ -153,7 +153,7 @@ jobs:
           for module in fingerprint fingerprint_sysfs input_booster_lkm sec_debug_coredump wlan; do
             test -s "$SRC/build/out/r0s/modules/lib/modules/$module.ko"
           done
-          printf 'source=%s\\nksunext=%s\\nbuild_only=true\\nrom_integrated=false\\nboard_pass=false\\n' \\
+          printf 'source=%s\nksunext=%s\nbuild_only=true\nrom_integrated=false\nboard_pass=false\n' \
             "$KERNEL_PIN" "$KSU_PIN" > "$SRC/build/out/r0s/.r0s_a16_kernel_host_pass"
 
       - name: Stage the existing A16 reconciler and packager (no ROM checkout)
@@ -161,33 +161,31 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p scripts/r0s security/avb out/tools/bin
-          for file in \\
-            scripts/r0s/reconcile_extremekrnl_gzh3_a16.py \\
-            scripts/r0s/package_extremekrnl_update_a16.py \\
-            scripts/r0s/integrate_extremekrnl_a16.py \\
+          for file in \
+            scripts/r0s/reconcile_extremekrnl_gzh3_a16.py \
+            scripts/r0s/package_extremekrnl_update_a16.py \
+            scripts/r0s/integrate_extremekrnl_a16.py \
             security/avb/testkey_rsa4096.pem; do
-            curl --fail --location --retry 3 --silent --show-error \\
-              "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/$file" \\
+            curl --fail --location --retry 3 --silent --show-error \
+              "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/$file" \
               --output "$file"
           done
           # Same revision as UN1CA external/android-tools vendor/avb submodule.
-          curl --fail --location --retry 3 --silent --show-error \\
-            'https://android.googlesource.com/platform/external/avb/+/c92ce4cb9a1b6d20a1bc11b7e5864af9f78615bb/avbtool.py?format=TEXT' \\
+          curl --fail --location --retry 3 --silent --show-error \
+            'https://android.googlesource.com/platform/external/avb/+/c92ce4cb9a1b6d20a1bc11b7e5864af9f78615bb/avbtool.py?format=TEXT' \
             | base64 --decode > out/tools/bin/avbtool
           test -s out/tools/bin/avbtool
           chmod +x out/tools/bin/avbtool
           SRC="$RUNNER_TEMP/a16-extremekrnl"
           test -s "$SRC/toolchain/mkbootimg/unpack_bootimg.py"
-          cat > out/tools/bin/unpack_bootimg <<EOF
-          #!/bin/sh
-          exec python3 "$SRC/toolchain/mkbootimg/unpack_bootimg.py" "\\$@"
-          EOF
+          printf '#!/bin/sh\nexec python3 "%s" "$@"\n' \
+            "$SRC/toolchain/mkbootimg/unpack_bootimg.py" > out/tools/bin/unpack_bootimg
           chmod +x out/tools/bin/unpack_bootimg
           ln -s "$SRC" out/kernel_tmp-exynos2200
-          python3 -m py_compile scripts/r0s/reconcile_extremekrnl_gzh3_a16.py \\
-            scripts/r0s/package_extremekrnl_update_a16.py \\
+          python3 -m py_compile scripts/r0s/reconcile_extremekrnl_gzh3_a16.py \
+            scripts/r0s/package_extremekrnl_update_a16.py \
             scripts/r0s/integrate_extremekrnl_a16.py
-          PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH" \\
+          PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH" \
             python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test
           python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
 
@@ -205,7 +203,7 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH"
           python3 scripts/r0s/package_extremekrnl_update_a16.py ci-build
           python3 scripts/r0s/package_extremekrnl_update_a16.py ci-verify
-          find out -maxdepth 1 -name 'ExtremeKRNL-*_r0s_KSUNext-*.zip' -exec sha256sum {} \\; \\
+          find out -maxdepth 1 -name 'ExtremeKRNL-*_r0s_KSUNext-*.zip' -exec sha256sum {} \; \
             | tee kernel-zip-sha256.txt
           cat kernel-zip-sha256.txt >> "$GITHUB_STEP_SUMMARY"
           echo 'A16 GZH3 cloud packaging HOST PASS; BOARD DEFERRED' >> "$GITHUB_STEP_SUMMARY"
