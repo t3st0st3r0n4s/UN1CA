@@ -18,7 +18,7 @@ if [[ $# -eq 1 && "$1" == --self-test ]]; then
   exit 0
 fi
 export PATH="$ROOT/out/tools/bin:$PATH"
-for cmd in git grep sha256sum modinfo unpack_bootimg find stat file lz4 cpio awk cmp wc sort; do
+for cmd in git grep sed sha256sum modinfo unpack_bootimg find stat file lz4 cpio awk cmp wc sort; do
   command -v "$cmd" >/dev/null || die "missing $cmd"
 done
 [[ -s "$FW/.extracted" && -s "$WORK/.completed" ]] || die 'native GZH3 extraction/workdir missing'
