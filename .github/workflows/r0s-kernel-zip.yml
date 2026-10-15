@@ -1,4 +1,4 @@
-name: A16 r0s ExtremeKRNL kernel ZIP (HOST ONLY)
+name: A16 r0s GZH3 ExtremeKRNL kernel ZIP (HOST ONLY)
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
     paths:
       - .github/workflows/r0s-kernel-zip.yml
       - scripts/r0s/ci_hold_raw_kernel_zip.py
+      - scripts/r0s/reconcile_extremekrnl_gzh3_a16.py
+      - scripts/r0s/package_extremekrnl_update_a16.py
       - ci_inputs/r0s_a16_gzh3_donors.sha256
   workflow_dispatch:
 
@@ -19,7 +21,7 @@ concurrency:
 
 jobs:
   kernel:
-    name: Compile pinned A16 built-in KSU kernel and quarantine ZIP
+    name: Compile, reconcile, AVB-sign, package native A16 kernel ZIP
     runs-on: ubuntu-24.04
     timeout-minutes: 330
     env:
@@ -66,7 +68,7 @@ jobs:
           test "$(head -c 8 "$DONOR/boot.img")" = 'ANDROID!'
           test "$(head -c 8 "$DONOR/vendor_boot.img")" = 'VNDRBOOT'
           echo 'GZH3 A16 permanent donor assets SHA256 / image headers PASS'
-          echo 'Reference inputs present; boot-chain reconciliation remains a separate gate' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Reference donors verified; GZH3 reconciliation follows compilation' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Reclaim disk on disposable GitHub-hosted runner
         shell: bash
@@ -86,7 +88,7 @@ jobs:
           set -euo pipefail
           sudo apt-get update -qq
           DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends \
-            git make python3 cpio lz4 zip unzip kmod bc bison flex \
+            git make python3 python3-cryptography cpio lz4 zip unzip kmod bc bison flex \
             libssl-dev libelf-dev xz-utils zstd
           for tool in git make python3 cpio lz4 zip depmod modinfo sha256sum; do
             command -v "$tool" >/dev/null
@@ -148,25 +150,74 @@ jobs:
           test -s "$SRC/build/out/r0s/boot.img"
           test -s "$SRC/build/out/r0s/vendor_boot.img"
           test -s "$SRC/build/out/r0s/dtbo.img"
+          for module in fingerprint fingerprint_sysfs input_booster_lkm sec_debug_coredump wlan; do
+            test -s "$SRC/build/out/r0s/modules/lib/modules/$module.ko"
+          done
+          printf 'source=%s\\nksunext=%s\\nbuild_only=true\\nrom_integrated=false\\nboard_pass=false\\n' \\
+            "$KERNEL_PIN" "$KSU_PIN" > "$SRC/build/out/r0s/.r0s_a16_kernel_host_pass"
 
-      - name: Quarantine raw ZIP with mandatory E3099 and verify module provenance
+      - name: Stage the existing A16 reconciler and packager (no ROM checkout)
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/r0s/ci_hold_raw_kernel_zip.py \
-            "$RUNNER_TEMP/a16-extremekrnl" "$GITHUB_WORKSPACE/dist"
-          sha256sum dist/*.zip | tee kernel-zip-sha256.txt
-          cat kernel-zip-sha256.txt >> "$GITHUB_STEP_SUMMARY"
-          echo 'UNRECONCILED; E3099; NOT FLASHABLE' >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p scripts/r0s security/avb out/tools/bin
+          for file in \\
+            scripts/r0s/reconcile_extremekrnl_gzh3_a16.py \\
+            scripts/r0s/package_extremekrnl_update_a16.py \\
+            scripts/r0s/integrate_extremekrnl_a16.py \\
+            security/avb/testkey_rsa4096.pem; do
+            curl --fail --location --retry 3 --silent --show-error \\
+              "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/$file" \\
+              --output "$file"
+          done
+          # Same revision as UN1CA external/android-tools vendor/avb submodule.
+          curl --fail --location --retry 3 --silent --show-error \\
+            'https://android.googlesource.com/platform/external/avb/+/c92ce4cb9a1b6d20a1bc11b7e5864af9f78615bb/avbtool.py?format=TEXT' \\
+            | base64 --decode > out/tools/bin/avbtool
+          test -s out/tools/bin/avbtool
+          chmod +x out/tools/bin/avbtool
+          SRC="$RUNNER_TEMP/a16-extremekrnl"
+          test -s "$SRC/toolchain/mkbootimg/unpack_bootimg.py"
+          cat > out/tools/bin/unpack_bootimg <<EOF
+          #!/bin/sh
+          exec python3 "$SRC/toolchain/mkbootimg/unpack_bootimg.py" "\\$@"
+          EOF
+          chmod +x out/tools/bin/unpack_bootimg
+          ln -s "$SRC" out/kernel_tmp-exynos2200
+          python3 -m py_compile scripts/r0s/reconcile_extremekrnl_gzh3_a16.py \\
+            scripts/r0s/package_extremekrnl_update_a16.py \\
+            scripts/r0s/integrate_extremekrnl_a16.py
+          PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH" \\
+            python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test
+          python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
 
-      - name: Upload quarantined build artifact (not a release)
+      - name: Reconcile current compiled A16 kernel with pinned GZH3 donors
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH"
+          python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --ci-donors
+
+      - name: Canonical AVB signing and five-entry ExtremeKRNL update ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH"
+          python3 scripts/r0s/package_extremekrnl_update_a16.py ci-build
+          python3 scripts/r0s/package_extremekrnl_update_a16.py ci-verify
+          find out -maxdepth 1 -name 'ExtremeKRNL-*_r0s_KSUNext-*.zip' -exec sha256sum {} \\; \\
+            | tee kernel-zip-sha256.txt
+          cat kernel-zip-sha256.txt >> "$GITHUB_STEP_SUMMARY"
+          echo 'A16 GZH3 cloud packaging HOST PASS; BOARD DEFERRED' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reconciled signed kernel ZIP (not a release)
         uses: actions/upload-artifact@v4
         with:
-          name: UN1CA-A16-RAW-ExtremeKRNL-KSUNext-E3099-NOT-FLASHABLE
+          name: UN1CA-A16-GZH3-ExtremeKRNL-KSUNext-HOST-ONLY
           path: |
-            dist/*.zip
-            dist/provenance.json
-            dist/NOT_FOR_FLASH.txt
+            out/ExtremeKRNL-*_r0s_KSUNext-*.zip
+            out/ExtremeKRNL-*_r0s_KSUNext-*.provenance.json
             kernel-zip-sha256.txt
           if-no-files-found: error
           retention-days: 7
+
