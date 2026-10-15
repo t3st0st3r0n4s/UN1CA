@@ -47,18 +47,9 @@ def selected_ksu_pin(required=True):
 
 SPIN = selected_ksu_pin(required=False)
 FOTA = "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3"
-IMAGES = {
-    "boot.img": "55d86a13ae72768023961c8f05ed3eec0f3b4486da3e7a081b848b1e89355ad3",
-    "vendor_boot.img": "5901c98df36a8c11204a7e0e579f2824e24c133640e15b0b605de076901101c0",
-    "dtbo.img": "18a0c5572edcbf6a83bb55a407e956f78c34306e76b97fb9747a988b09c507df",
-}
-MODULES = {
-    "fingerprint.ko": "7b4dcae483c32e211599393cf7142fcb63824437264265f2bd9253fc49c98545",
-    "fingerprint_sysfs.ko": "fd6744c69f1aff1e1a6f2f536f0f48ba99ca6d7df4d70574543141b38edb5d95",
-    "input_booster_lkm.ko": "be8e3b2c13056da6f447fd3862b453c03feee2a7c336165203d7c37c4722d1ea",
-    "sec_debug_coredump.ko": "110cf61f8f18577fa1c327e1fa6fd6a0f4a8da98b22fa8480935233eb59afbf4",
-    "wlan.ko": "75c4344063ce7af1c8234b6bd01569529094de75e77d555ebbb163598c2002e8",
-}
+IMAGES = ("boot.img", "vendor_boot.img", "dtbo.img")
+MODULES = ("fingerprint.ko", "fingerprint_sysfs.ko",
+           "input_booster_lkm.ko", "sec_debug_coredump.ko", "wlan.ko")
 CAP = {"boot.img": 67108864, "vendor_boot.img": 33554432, "dtbo.img": 8388608}
 
 
