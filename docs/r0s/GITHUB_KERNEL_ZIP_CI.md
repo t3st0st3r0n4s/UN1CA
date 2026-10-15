@@ -52,7 +52,17 @@ entire target-files ZIP or Git LFS assets are needed.
    Release tags are derived from the inner ZIP basename; repeating the same
    build updates its existing pre-release asset instead of creating duplicates.
 
-Commands unchanged in the original host production path.
+The **original upstream kernel compiler** remains `bash ./build.sh -m r0s -k`.
+The host wrapper now resolves the same `KernelSU-Next/releases/latest` stable
+tag as CI on `--prepare` / `--build`, checks out its immutable commit and
+records it in `.r0s_a16_kernel_host_pass`. Host reconciliation, packaging,
+integration and post-build audit reuse that recorded pin; they do not
+silently select a newer release mid-build. `--check` and `--self-test`
+remain offline. A completed host build is protected from an implicit source
+switch; a newer KSU version requires a separate clean build workspace.
+Previously pinned ROM integration image/module hashes remain explicit
+safety gates and are **not** automatically qualified for a new KSU build.
+
 The cloud-specific path avoids needing or inventing a full ROM workdir
 or synthetic GZH3 firmware extraction marker.
 
@@ -62,7 +72,10 @@ and [v3.4.2 run 38739760017](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs
 **A16 physical boot and KernelSU runtime remain BOARD DEFERRED.**
 Single-`.tar.xz` creation and the v3.4.2 compiler cache reuse passed in
 [run 38747161658](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38747161658).
-Direct GitHub pre-release publishing is committed but has **not** yet been tested by a workflow run.
+Direct pre-release publishing passed in
+[run 38751422913](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38751422913).
+The new **host** version-policy change has not yet been executed on the
+physical development machine.
 
 ## Reuse compilation automatically
 
