@@ -133,17 +133,36 @@ def main():
     if sys.argv[1:] == ["--self-test"]:
         fixture()
         return
-    if sys.argv[1:]:
-        hold("usage: reconcile_extremekrnl_gzh3_a16.py [--self-test]")
+    ci_donors = sys.argv[1:] == ["--ci-donors"]
+    if sys.argv[1:] and not ci_donors:
+        hold("usage: reconcile_extremekrnl_gzh3_a16.py [--self-test|--ci-donors]")
     for binary in ("unpack_bootimg", "lz4", "cpio", "modinfo"):
         if not shutil.which(binary):
             hold("host tool missing: " + binary)
     if DEST.exists():
         hold("candidate exists and will never be overwritten: " + str(DEST))
-    if require(FW / ".extracted").read_text().strip() != FIRMWARE:
-        hold("native GZH3 firmware marker mismatch")
-    require(WORK / ".completed")
-    require(ART / ".r0s_a16_kernel_host_pass")
+    if ci_donors:
+        # Same trusted GZH3 images as the October 13 workdir; without
+        # claiming the ephemeral CI workspace is a completed ROM workdir.
+        sums = ROOT / "ci_inputs/r0s_a16_gzh3_donors.sha256"
+        if not sums.is_file():
+            hold("pinned CI GZH3 donor SHA256 manifest missing")
+        records = dict(line.strip().split("  ", 1)[::-1]
+                       for line in sums.read_text().splitlines() if line.strip())
+        if set(records) != {"boot.img", "vendor_boot.img"}:
+            hold("unexpected A16 CI donor manifest")
+        for name, expected in records.items():
+            item = require(WORK / "kernel" / name)
+            if sha256(item) != expected:
+                hold("CI donor SHA256 differs: " + name)
+        if not require(ART / "boot.img").is_file():
+            hold("no newly compiled ExtremeKRNL boot image")
+        print("PINNED CI A16 GZH3 BOOT DONORS PASS (not a ROM workdir)")
+    else:
+        if require(FW / ".extracted").read_text().strip() != FIRMWARE:
+            hold("native GZH3 firmware marker mismatch")
+        require(WORK / ".completed")
+        require(ART / ".r0s_a16_kernel_host_pass")
     assertions = (ROOT / "target/r0s/installer/assertions.edify").read_text()
     if 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' not in assertions:
         hold("E3099 installer lock missing")
