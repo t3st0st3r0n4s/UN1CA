@@ -1,5 +1,6 @@
 a16-gzh3-ci
 kernel=ExtremeKRNL-v2.5
-ksunext=v3.4.1
-mode=cache-first-compile-once
+ksunext=latest-stable
+mode=cache-first-compile-once-per-ksu-commit
+expect-on-2026-10-15=v3.4.2
 result=host-zip-board-deferred
