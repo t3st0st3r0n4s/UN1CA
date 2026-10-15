@@ -43,11 +43,14 @@ entire target-files ZIP or Git LFS assets are needed.
    module/version structure in the reconciler. Record module SHA-256
    for diagnostics only; compiler-dependent module hashes are **not**
    equality gates. The kernel-only ZIP does not update `vendor_dlkm`.
-5. Upload **only one** `.tar.xz` containing the verified, flashable
-   `ExtremeKRNL-v2.5_r0s_KSUNext-<resolved-release>_<build-date>.zip`.
-   Compiled images and diagnostic provenance remain in the build/cache, not in
-   the download. GitHub Actions adds its mandatory outer artifact ZIP;
-   extract it, then extract the `.tar.xz` to get the actual recovery ZIP.
+5. Publish **one pre-release asset directly to GitHub Releases**:
+   `ExtremeKRNL-v2.5_r0s_KSUNext-<resolved-release>_<build-date>.tar.xz`.
+   It contains only `ExtremeKRNL-v2.5_r0s_KSUNext-<resolved-release>_<build-date>.zip`.
+   **Exactly two levels**; no Actions download ZIP, extra image files,
+   checksum assets or diagnostic attachments. Logs and compiled outputs
+   remain available via Actions and the existing compiler cache.
+   Release tags are derived from the inner ZIP basename; repeating the same
+   build updates its existing pre-release asset instead of creating duplicates.
 
 Commands unchanged in the original host production path.
 The cloud-specific path avoids needing or inventing a full ROM workdir
@@ -57,7 +60,9 @@ or synthetic GZH3 firmware extraction marker.
 five-file recovery ZIP packaging passed in [v3.4.1 run 38732474957](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38732474957)
 and [v3.4.2 run 38739760017](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38739760017).
 **A16 physical boot and KernelSU runtime remain BOARD DEFERRED.**
-The simplified single-`.tar.xz` publishing layout has not yet been exercised in Actions.
+Single-`.tar.xz` creation and the v3.4.2 compiler cache reuse passed in
+[run 38747161658](https://github.com/t3st0st3r0n4s/UN1CA/actions/runs/38747161658).
+Direct GitHub pre-release publishing is committed but has **not** yet been tested by a workflow run.
 
 ## Reuse compilation automatically
 
@@ -72,17 +77,18 @@ There is **one** workflow; the compiler cache is keyed by the unchanged ExtremeK
 - An actual kernel/KernelSU source or compiler environment update requires
   a new cache key and one new compilation.
 
-No permanent compiled-kernel Release, separate host seeding procedure,
-or missing-asset failure. `workflow_dispatch` and the explicit
-`ci_inputs/r0s_a16_kernel_ci.run` marker trigger builds, not ordinary
-packaging-script commits. Keep the native GZH3 donor Release unchanged.
+There is no compiled-kernel Release or extra host seeding step. The stable
+GZH3 donor Release is unchanged.
 
-## Manual run
+## Manual run on the experimental branch
 
-```bash
-gh workflow run r0s-kernel-zip.yml \
-  --repo t3st0st3r0n4s/UN1CA \
-  --ref sixteen-r0s-kernel-ci
-```
+The default branch is `sixteen` and does not contain this workflow. GitHub
+only enables `workflow_dispatch` for workflow files present on the default
+branch, so **explicitly edit and commit** the existing
+`ci_inputs/r0s_a16_kernel_ci.run` marker on `sixteen-r0s-kernel-ci` to start
+one build. Ordinary workflow/script commits never start builds.
+
+Once the workflow is on the default branch, the normal manual
+`gh workflow run r0s-kernel-zip.yml --ref <branch>` command can be used instead.
 
 No changes to A15 TachyonOS or to the stable A16 branch.
