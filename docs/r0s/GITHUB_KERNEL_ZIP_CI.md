@@ -61,8 +61,12 @@ silently select a newer release mid-build. `--check` and `--self-test`
 remain offline. A completed host build is protected from an implicit source
 switch; archive its previous `build/out/r0s` output explicitly before updating,
 then reuse the existing kernel checkout (no duplicate clone).
-Previously pinned ROM integration image/module hashes remain explicit
-safety gates and are **not** automatically qualified for a new KSU build.
+ROM integration compares reconciled images against the current
+candidate and vendor modules against the same compilation, retaining native
+GZH3 ramdisk/EROFS and module ABI checks instead of historical build hashes.
+The manager installer resolves the matching official spoofed APK and SHA256
+from that compiled KSU release and uses its build number for the one-shot
+installation marker. Device runtime/boot qualification remains deferred.
 
 The cloud-specific path avoids needing or inventing a full ROM workdir
 or synthetic GZH3 firmware extraction marker.
