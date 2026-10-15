@@ -21,6 +21,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -267,6 +268,121 @@ def build(expected):
     print("Original kernel ZIP layout and updater-script preserved")
 
 
+
+def ci_build():
+    """Package newly built A16 GZH3 hybrid using the canonical ZIP contract.
+
+    This mode avoids a synthetic full ROM workdir and full target-files ZIP.
+    The same reconciler has already verified native GZH3 donor metadata.
+    Sign the three candidate images using the *same* AVB test key and
+    add_hash_footer settings as scripts/utils/install_utils.sh.
+    """
+    from integrate_extremekrnl_a16 import MODULES as INSTALLED_MODULES
+    out = output_path()  # Reuses the actual upstream filename + pinned KSU tag.
+    report_path = out.with_suffix(".provenance.json")
+    need(not out.exists() and not report_path.exists(),
+         "existing kernel ZIP/provenance cannot be overwritten")
+    need(blob(UPDATE_BINARY) == A15_A16_UPDATER_GIT_BLOB,
+         "original ExtremeKRNL updater binary differs from canonical")
+    source_script()
+    candidate = ROOT / "out/r0s_A16_ExtremeKRNL_KSU_hybrid_candidate"
+    need((candidate / "NOT_FLASHABLE.txt").is_file(),
+         "existing A16 reconciler did not produce a verified hybrid")
+    need((ROOT / "ci_inputs/r0s_a16_gzh3_donors.sha256").is_file(),
+         "A16 donor SHA256 manifest missing")
+
+    # This ZIP intentionally does NOT carry vendor_dlkm; don't silently
+    # ship a kernel whose modules differ from the installed A16 baseline.
+    modules = {}
+    for name, baseline_hash in INSTALLED_MODULES.items():
+        item = candidate / "vendor_dlkm/lib/modules" / name
+        need(item.is_file() and digest(item) == baseline_hash,
+             "installed vendor_dlkm module differs from cloud build: " + name)
+        modules[name] = baseline_hash
+
+    key = ROOT / "security/avb/testkey_rsa4096.pem"
+    need(key.is_file(), "canonical UN1CA AVB test key missing")
+    need(shutil.which("avbtool") is not None, "avbtool missing")
+    need(shutil.which("unpack_bootimg") is not None, "unpack_bootimg missing")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    signed_hashes = {}
+    with tempfile.TemporaryDirectory(prefix=".r0s_ci_signed_",
+                                     dir=out.parent) as temp:
+        tempdir = Path(temp)
+        for part in BOOTS:
+            raw = candidate / (part + ".img")
+            need(raw.is_file() and 0 < raw.stat().st_size < CAPS[part],
+                 "missing or oversized reconciled " + part)
+            signed = tempdir / (part + ".img")
+            shutil.copyfile(raw, signed)
+            # The host's original SIGN_IMAGE_WITH_AVB logic:
+            # add_hash_footer, SHA256_RSA4096, SHA256, partition size/name.
+            result = subprocess.run(["avbtool", "info_image", "--image", str(signed)],
+                                    capture_output=True)
+            need(result.returncode != 0, "hybrid input already carries AVB: " + part)
+            cmd = ["avbtool", "add_hash_footer",
+                   "--image", str(signed),
+                   "--partition_size", str(CAPS[part]),
+                   "--partition_name", part,
+                   "--hash_algorithm", "sha256",
+                   "--algorithm", "SHA256_RSA4096",
+                   "--key", str(key)]
+            need(subprocess.run(cmd, capture_output=True).returncode == 0,
+                 "canonical A16 AVB hash footer signing failed: " + part)
+            check = subprocess.run(["avbtool", "info_image", "--image", str(signed)],
+                                   capture_output=True, text=True)
+            need(check.returncode == 0 and signed.stat().st_size == CAPS[part],
+                 "invalid signed A16 image/partition length: " + part)
+            need(("Partition Name:          " + part) in check.stdout or
+                 ("Partition Name: " + part) in check.stdout,
+                 "signed image partition name mismatch: " + part)
+            signed_hashes[part] = digest(signed)
+
+        # Same original FIVE-MEMBER recovery ZIP as build() and host reference.
+        with zipfile.ZipFile(tempdir / "kernel.zip", "w", allowZip64=True) as archive:
+            archive.write(UPDATE_BINARY, BINARY, compress_type=zipfile.ZIP_STORED)
+            archive.writestr(SCRIPT, source_script())
+            for part in BOOTS:
+                with (tempdir / (part + ".img")).open("rb") as inp:
+                    with archive.open("files/" + part + ".img",
+                                      "w", force_zip64=True) as writer:
+                        for chunk in iter(lambda: inp.read(1048576), b""):
+                            writer.write(chunk)
+        package_verify(tempdir / "kernel.zip")
+        need(not out.exists(), "kernel ZIP destination occupied")
+        (tempdir / "kernel.zip").replace(out)
+
+    report = {
+        "status": "A16_GZH3_CLOUD_PACKAGE_HOST_PASS_BOARD_DEFERRED",
+        "device": "SM-S901B", "android_api": 36,
+        "kernel_source": KERNEL_PIN, "ksunext_source": KSU_PIN,
+        "ksunext_release": ksu_release(),
+        "donor_release": "r0s-a16-gzh3-donors-v1",
+        "avb_method": "UN1CA_SIGN_IMAGE_WITH_AVB_SHA256_RSA4096_TESTKEY",
+        "signed_images_sha256": signed_hashes,
+        "installed_vendor_dlkm_sha256": modules,
+        "kernel_zip_sha256": digest(out),
+        "a16_device_qualified": False,
+    }
+    report_path.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+    print("A16 GZH3 RECONCILED AVB-SIGNED CLOUD KERNEL ZIP HOST PACKAGE PASS")
+    print("BOARD DEFERRED; vendor_dlkm SHA256 parity PASS")
+    print("ZIP: " + str(out))
+    print("SHA256: " + report["kernel_zip_sha256"])
+
+def ci_verify():
+    out = output_path()
+    report = json.loads(out.with_suffix(".provenance.json").read_text())
+    need(report.get("status") == "A16_GZH3_CLOUD_PACKAGE_HOST_PASS_BOARD_DEFERRED",
+         "no CI A16 signed package provenance")
+    need(report.get("kernel_zip_sha256") == digest(out), "CI ZIP hash drift")
+    package_verify(out)
+    with zipfile.ZipFile(out) as z:
+        for part, expected in report["signed_images_sha256"].items():
+            with z.open("files/" + part + ".img") as stream:
+                need(digest_stream(stream) == expected, "signed image drift: " + part)
+    print("A16 GZH3 SIGNED CLOUD KERNEL ZIP HOST VERIFY PASS — BOARD DEFERRED")
+
 def self_test():
     source_script() if UPDATE_BINARY.is_file() and UPDATER_SOURCE.is_file() else None
     need(len(BOOTS) == 3 and len(MEMBERS) == 5,
@@ -302,13 +418,17 @@ def self_test():
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("mode", choices=("self-test", "check", "build", "verify"))
+    p.add_argument("mode", choices=("self-test", "check", "build", "verify", "ci-build", "ci-verify"))
     p.add_argument("sha256", nargs="?", help="existing signed A16 target-files SHA256")
     args = p.parse_args()
     if args.mode == "self-test":
         self_test()
     elif args.mode == "check":
         check(args.sha256)
+    elif args.mode == "ci-build":
+        ci_build()
+    elif args.mode == "ci-verify":
+        ci_verify()
     elif args.mode == "build":
         build(args.sha256)
     else:
