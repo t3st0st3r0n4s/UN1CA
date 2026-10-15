@@ -62,3 +62,64 @@ A larger runner or separate build infrastructure would then be needed.
 
 No changes to stable `sixteen-r0s`, no A15 work, no device flashing, and no
 modifications to existing E3099-protected ROM installation paths.
+
+
+## Host reference upload → GitHub five-entry ZIP parity (2026-10-15)
+
+**This is NOT yet a new-version cloud kernel-to-flashable-ZIP pipeline.**
+The original 13 October signed/reconciled ZIP is the immutable reference.
+The successful 15 October GitHub build proved cloud kernel compilation; its
+unreconciled vendor_boot is NOT substituted into the host-signed images.
+Repackaged reference images carry their original hashes. No boot signing keys
+or complete firmware/ROM/target-files ZIP are uploaded.
+
+Host command (run from the current **`sixteen-r0s-kernel-ci` checkout**):
+
+```bash
+cd ~/android/UN1CA
+git fetch origin sixteen-r0s-kernel-ci
+git switch sixteen-r0s-kernel-ci
+git pull --ff-only origin sixteen-r0s-kernel-ci
+python3 scripts/r0s/ci_upload_kernel_reference.py
+python3 scripts/r0s/ci_upload_kernel_reference.py --publish
+```
+
+**Important:** this switches the *host source checkout* to the experimental
+branch. No existing `out/` bytes are rewritten. With local uncommitted
+source edits, `git switch` may refuse; do not force it.
+
+Uploader verifies:
+- Exact 13 October original ZIP filename; SHA-256 against companion
+  `.provenance.json` and the pinned A16 kernel/KSU source commits
+- Original ExtremeKRNL update-binary and updater-script Git blob SHA-1
+- Three exact partition-sized signed boot images, byte-equal to the retained
+  `out/r0s_A16_GZH3_HOST_ONLY-target_files.zip` (whole archive SHA-256
+  `4f5088ee40af3fb386cb134e7efea6be0c096349800f7d7f8697670542f51f5a`)
+- Exactly five recovery updater entries and correct partition destinations
+
+Upon `--publish`, the host uses the authenticated `gh` CLI to create a
+**PUBLIC pre-release** asset named:
+`r0s-a16-kernel-reference-v1`.
+It then commits **only a JSON checksum manifest** under
+`ci_inputs/a16_kernel_reference.json` on the experiment branch,
+triggering `.github/workflows/r0s-kernel-reference-zip.yml`.
+**The public release contains the proprietary-derived signed boot chain**:
+confirm you're willing to publish this file before invoking `--publish`.
+Never upload private keys, EFS, entire firmware packages or super images.
+
+The new GitHub workflow downloads that exact public asset, verifies its
+SHA-256, verifies the three full partition hashes and exact upstream updater,
+and reassembles the canonical
+`ExtremeKRNL-v2.5_r0s_KSUNext-v3.4.1_<timestamp>.zip` with unchanged
+five member payloads. It publishes the Actions artifact as
+`UN1CA-A16-GZH3-REFERENCE-ZIP-NOT-BOARD-QUALIFIED`, never a public
+flash-ready Release. The separately successful cloud-compiled Image is
+**not** embedded; provenance states `uses_new_cloud_compiled_kernel=false`.
+
+**Next technical step for native cloud-only updates:** use the uploaded native
+GZH3 boot metadata/ramdisks as *donor*, substitute the newly compiled
+ExtremeKRNL `Image`, DTB, module ramdisk and DTBO, and repeat the original
+A16 verification/signing process with exact retained test-key policy. Check
+vendor_dlkm CRC ABI against the installed A16 set. Until that pipeline
+passes, the reference repackage must not be mistaken for a newly built
+or device-qualified kernel update.
