@@ -8,12 +8,12 @@ ART="$SRC/build/out/r0s"
 FW="$ROOT/out/fw/SM-S901B_EUX"
 WORK="$ROOT/out/target/r0s/work_dir"
 KPIN=78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95
-SPIN=8f902aeb16033024143ae36cf711df902cf02fae
+SPIN=""
 die() { echo "r0s CUSTOM KERNEL AUDIT BLOCKED: $*" >&2; exit 2; }
 [[ $# -eq 0 || ( $# -eq 1 && "$1" == --self-test ) ]] || die 'usage: audit_extremekrnl_a16_candidate.sh [--self-test]'
 if [[ $# -eq 1 && "$1" == --self-test ]]; then
   bash -n "$ROOT/scripts/r0s/audit_extremekrnl_a16_candidate.sh"
-  [[ "$KPIN" =~ ^[a-f0-9]{40}$ && "$SPIN" =~ ^[a-f0-9]{40}$ ]] || die 'invalid pin'
+  [[ "$KPIN" =~ ^[a-f0-9]{40}$ ]] || die 'invalid kernel pin'
   echo 'Custom kernel audit self-test PASS'
   exit 0
 fi
@@ -26,6 +26,8 @@ done
 grep -Fq 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' \
  "$ROOT/target/r0s/installer/assertions.edify" || die 'E3099 installer lock absent'
 [[ -s "$ART/.r0s_a16_kernel_host_pass" ]] || die 'build PASS marker absent'
+SPIN="$(sed -n 's/^ksunext=//p' "$ART/.r0s_a16_kernel_host_pass")"
+[[ "$SPIN" =~ ^[a-f0-9]{40}$ ]] || die 'invalid KernelSU Next commit in build provenance'
 [[ "$(git -C "$SRC" rev-parse HEAD)" == "$KPIN" ]] || die 'kernel source pin drift'
 [[ "$(git -C "$SRC/KernelSU-Next" rev-parse HEAD)" == "$SPIN" ]] || die 'KSU source pin drift'
 grep -Fxq CONFIG_KSU=y "$SRC/out/.config" || die 'CONFIG_KSU is not enabled'
