@@ -7,7 +7,7 @@ on:
     paths:
       - .github/workflows/r0s-kernel-zip.yml
       - scripts/r0s/ci_hold_raw_kernel_zip.py
-      - docs/r0s/GITHUB_KERNEL_ZIP_CI.md
+      - ci_inputs/r0s_a16_gzh3_donors.sha256
   workflow_dispatch:
 
 permissions:
@@ -31,16 +31,42 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p scripts/r0s target/r0s/installer
+          mkdir -p scripts/r0s target/r0s/installer ci_inputs
           curl --fail --location --retry 3 --silent --show-error \
             "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/scripts/r0s/ci_hold_raw_kernel_zip.py" \
             -o scripts/r0s/ci_hold_raw_kernel_zip.py
           curl --fail --location --retry 3 --silent --show-error \
             "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/target/r0s/installer/assertions.edify" \
             -o target/r0s/installer/assertions.edify
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/ci_inputs/r0s_a16_gzh3_donors.sha256" \
+            -o ci_inputs/r0s_a16_gzh3_donors.sha256
           python3 scripts/r0s/ci_hold_raw_kernel_zip.py --self-test
           grep -Fq 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' \
             target/r0s/installer/assertions.edify
+
+      - name: Download and verify permanent A16 GZH3 donor images
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          DONOR="$GITHUB_WORKSPACE/out/target/r0s/work_dir/kernel"
+          mkdir -p "$DONOR"
+          gh release download r0s-a16-gzh3-donors-v1 \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'boot.img' \
+            --pattern 'vendor_boot.img' \
+            --dir "$DONOR"
+          test "$(find "$DONOR" -maxdepth 1 -type f | wc -l)" -eq 2
+          ( cd "$DONOR" && sha256sum -c \
+            "$GITHUB_WORKSPACE/ci_inputs/r0s_a16_gzh3_donors.sha256" )
+          test "$(stat -c %s "$DONOR/boot.img")" -eq 29704192
+          test "$(stat -c %s "$DONOR/vendor_boot.img")" -eq 24961024
+          test "$(head -c 8 "$DONOR/boot.img")" = 'ANDROID!'
+          test "$(head -c 8 "$DONOR/vendor_boot.img")" = 'VNDRBOOT'
+          echo 'GZH3 A16 permanent donor assets SHA256 / image headers PASS'
+          echo 'Reference inputs present; boot-chain reconciliation remains a separate gate' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Reclaim disk on disposable GitHub-hosted runner
         shell: bash
