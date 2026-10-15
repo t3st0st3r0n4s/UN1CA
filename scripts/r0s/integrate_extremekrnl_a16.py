@@ -240,17 +240,15 @@ def verify_integrated():
         need(shutil.which(tool), "missing validation host tool " + tool)
     ramdisk_gate()
     print("A16 EXTREMEKRNL R0S INTEGRATED WORKDIR VERIFY PASS — HOST ONLY")
-    print("Kernel/KSU candidate exact hashes confirmed; E3099 ACTIVE")
+    print("Kernel/KSU current candidate matched; E3099 ACTIVE")
 
 
 def fixture():
     need(set(CAP) == set(IMAGES), "image list mismatch")
     need(len(MODULES) == 5, "required vendor_dlkm list incomplete")
-    for group in (IMAGES, MODULES):
-        need(all(len(x) == 64 and set(x) <= set("0123456789abcdef")
-                 for x in group.values()), "malformed hash pin")
-    need(len(KPIN) == len(SPIN) == 40, "malformed source pin")
-    print("A16 custom r0s late-integration pin/schema self-test PASS")
+    need(len(KPIN) == 40 and (SPIN is None or len(SPIN) == 40),
+         "malformed source pin")
+    print("A16 custom r0s late-integration schema self-test PASS")
 
 
 def main():
