@@ -1,15 +1,10 @@
 name: A16 r0s GZH3 ExtremeKRNL kernel ZIP (HOST ONLY)
 
 on:
-  push:
-    branches:
-      - sixteen-r0s-kernel-ci
-    paths:
-      - ci_inputs/r0s_a16_kernel_ci.run
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: a16-r0s-kernel-zip-${{ github.ref }}
@@ -226,8 +221,8 @@ jobs:
           export PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH"
           python3 scripts/r0s/package_extremekrnl_update_a16.py ci-build
           python3 scripts/r0s/package_extremekrnl_update_a16.py ci-verify
-          # GitHub Actions artifacts always download as a ZIP. Keep their
-          # *only* payload a non-flashable .tar.xz containing the flashable ZIP.
+          # Direct GitHub Release asset: one .tar.xz enclosing only the
+          # validated recovery ZIP. No Actions artifact / outer ZIP.
           shopt -s nullglob
           zips=(out/ExtremeKRNL-*_r0s_KSUNext-*.zip)
           [[ "${#zips[@]}" -eq 1 ]] || { echo 'Expected one verified kernel ZIP' >&2; exit 2; }
@@ -235,14 +230,32 @@ jobs:
           tar -C out -cJf "out/${name%.zip}.tar.xz" "$name"
           [[ "$(tar -tJf "out/${name%.zip}.tar.xz")" == "$name" ]]
           sha256sum "${zips[0]}" >> "$GITHUB_STEP_SUMMARY"
-          echo 'Download artifact -> extract .tar.xz -> flash inner .zip; A16 BOARD DEFERRED' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Release .tar.xz -> extract -> recovery .zip; A16 BOARD DEFERRED' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload only compressed flashable ZIP container
-        uses: actions/upload-artifact@v4
-        with:
-          name: UN1CA-A16-GZH3-KSUNext-${{ env.KSU_TAG }}-TAR-XZ-HOST-ONLY
-          path: out/ExtremeKRNL-*_r0s_KSUNext-*.tar.xz
-          compression-level: 0
-          if-no-files-found: error
-          retention-days: 7
+      - name: Publish single tar.xz asset as GitHub pre-release
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          archives=(out/ExtremeKRNL-*_r0s_KSUNext-*.tar.xz)
+          [[ "${#archives[@]}" -eq 1 ]] || { echo 'Expected one .tar.xz for publication' >&2; exit 2; }
+          archive="${archives[0]}"
+          name="$(basename "$archive" .tar.xz)"
+          [[ "$(tar -tJf "$archive")" == "$name.zip" ]]
+          tag="r0s-a16-gzh3-$name"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            # Re-running the same cached build updates its asset in place.
+            gh release upload "$tag" "$archive" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$tag" "$archive" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --title "$name — A16 HOST ONLY" \
+              --notes "SM-S901B r0s / native GZH3 Android 16. ExtremeKRNL built-in KernelSU Next $KSU_TAG. Download the .tar.xz, extract the single TWRP recovery .zip. A16 physical boot and runtime validation are deferred."
+          fi
+          gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+            | grep -Fxq "$name.tar.xz"
+          echo "Pre-release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"
+
 
