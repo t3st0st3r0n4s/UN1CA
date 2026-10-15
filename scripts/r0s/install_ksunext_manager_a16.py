@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install TachyonOS-style KSU Next v3.4.1 one-shot manager in UN1CA A16.
+"""Install the matching stable KernelSU Next one-shot manager in UN1CA A16.
 
 --check and --self-test are read-only. --verify checks a prepared workdir.
 --apply is invoked by r0s's late module, after the kernel integration.
@@ -17,15 +17,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import json
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "out/target/r0s/work_dir"
 STAGE = ROOT / "staging/r0s/ksunext"
 CACHE = ROOT / "out/target/r0s/ksunext_manager_cache"
-APK_NAME = "KernelSU_Next_v3.4.1-spoofed_33333-release.apk"
-URL = ("https://github.com/KernelSU-Next/KernelSU-Next/releases/download/"
-       "v3.4.1/" + APK_NAME)
-DIGEST = "f41778ee812512ae96bf53e7265114de5e0414bc5cb92397f49e1052d77da118"
 SYSTEM = WORK / "system/system"
 FS_CONFIG = WORK / "configs/fs_config-system"
 FILE_CONTEXT = WORK / "configs/file_context-system"
@@ -74,11 +72,50 @@ def hash_file(path):
 def read_manifest():
     content = (STAGE / "manifest.env").read_text()
     result = dict(re.findall(r'^([A-Z0-9_]+)="([^"]*)"$', content, re.M))
-    for key, value in (("MANAGER_RELEASE", "v3.4.1"),
-                       ("MANAGER_PACKAGE_SUFFIX", "33333"),
-                       ("MANAGER_URL", URL),
-                       ("MANAGER_SHA256", DIGEST)):
-        need(result.get(key) == value, "manager manifest drift: " + key)
+    for key, expected in (("A16_MANAGER_PRELOAD_ENABLED", "true"),
+                          ("A16_ROOT_SELINUX_QUALIFIED", "false"),
+                          ("A16_MANAGER_RUNTIME_QUALIFIED", "false"),
+                          ("A16_FLASH_PROMOTION_ALLOWED", "false")):
+        need(result.get(key) == expected, "manager staging policy drift: " + key)
+
+
+def manager_release():
+    """Match the current compiled KSU tag to its official signed-release digest."""
+    from integrate_extremekrnl_a16 import selected_ksu_pin
+    kernel = ROOT / "out/kernel_tmp-exynos2200/KernelSU-Next"
+    pin = selected_ksu_pin()
+    head = subprocess.run(["git", "-C", str(kernel), "rev-parse", "HEAD"],
+                          text=True, capture_output=True, check=True).stdout.strip()
+    need(head == pin, "manager and compiled KernelSU commits differ")
+    tags = subprocess.run(["git", "-C", str(kernel), "tag", "--points-at", "HEAD"],
+                          text=True, capture_output=True, check=True).stdout.splitlines()
+    stable = [t for t in tags if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", t)]
+    need(len(stable) == 1, "compiled KernelSU commit needs one stable release tag")
+    tag = stable[0]
+    url = "https://api.github.com/repos/KernelSU-Next/KernelSU-Next/releases/tags/" + tag
+    request = Request(url, headers={"Accept": "application/vnd.github+json",
+                                    "User-Agent": "UN1CA-r0s-manager"})
+    with urlopen(request, timeout=20) as response:
+        release = json.load(response)
+    need(release.get("tag_name") == tag and not release.get("prerelease"),
+         "manager release does not match compiled stable KernelSU")
+    matches = []
+    for asset in release.get("assets", []):
+        name = asset["name"]
+        build = re.fullmatch(r"KernelSU_Next_" + re.escape(tag) +
+                             r"-spoofed_([0-9]+)-release\.apk", name)
+        if build:
+            matches.append((name, build.group(1), asset))
+    need(len(matches) == 1, "expected one official spoofed manager APK")
+    name, build, asset = matches[0]
+    digest = asset.get("digest", "")
+    need(re.fullmatch(r"sha256:[a-f0-9]{64}", digest) is not None,
+         "official manager release SHA256 missing")
+    need(asset["browser_download_url"].startswith(
+         "https://github.com/KernelSU-Next/KernelSU-Next/releases/download/" +
+         tag + "/"), "manager asset URL differs from official release")
+    return {"name": name, "build": build, "url": asset["browser_download_url"],
+            "sha256": digest.split(":", 1)[1], "tag": tag}
 
 
 def installer_bytes():
