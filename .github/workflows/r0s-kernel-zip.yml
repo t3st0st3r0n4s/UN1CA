@@ -186,10 +186,9 @@ jobs:
         run: |
           set -euo pipefail
           SRC="$RUNNER_TEMP/a16-extremekrnl"
-          mkdir -p "$SRC/build/out/r0s"
-          gh release download r0s-a16-extremekrnl-v2.5-ksunext-v3.4.1-compiled             --repo "$GITHUB_REPOSITORY"             --pattern 'r0s-a16-compiled-v3.4.1.tar.gz'             --dir "$RUNNER_TEMP"
+          gh release download r0s-a16-extremekrnl-v2.5-ksunext-v3.4.1-compiled --repo "$GITHUB_REPOSITORY" --pattern 'r0s-a16-compiled-v3.4.1.tar.gz' --dir "$RUNNER_TEMP"
           test -s "$RUNNER_TEMP/r0s-a16-compiled-v3.4.1.tar.gz"
-          tar -xzf "$RUNNER_TEMP/r0s-a16-compiled-v3.4.1.tar.gz"             -C "$SRC/build/out/r0s"             --no-same-owner --no-same-permissions
+          tar -xzf "$RUNNER_TEMP/r0s-a16-compiled-v3.4.1.tar.gz" -C "$SRC" --no-same-owner --no-same-permissions
           echo 'PINNED HOST BUILD RESTORED: no cloud compilation needed.'
 
       - name: Reuse existing ExtremeKRNL r0s kernel + ZIP build
