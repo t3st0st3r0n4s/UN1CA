@@ -132,25 +132,6 @@ jobs:
             exit 2
           fi
 
-      - name: Reuse existing ExtremeKRNL r0s kernel + ZIP build
-        shell: bash
-        run: |
-          set -euo pipefail
-          SRC="$RUNNER_TEMP/a16-extremekrnl"
-          # This is the exact invocation in UN1CA's existing
-          # scripts/r0s/build_extremekrnl_a16.sh; no forked build system.
-          (cd "$SRC" && bash ./build.sh -m r0s -k)
-          grep -Fxq 'CONFIG_KSU=y' "$SRC/out/.config"
-          grep -Fxq 'CONFIG_MODVERSIONS=y' "$SRC/out/.config"
-          test -s "$SRC/build/out/r0s/boot.img"
-          test -s "$SRC/build/out/r0s/vendor_boot.img"
-          test -s "$SRC/build/out/r0s/dtbo.img"
-          for module in fingerprint fingerprint_sysfs input_booster_lkm sec_debug_coredump wlan; do
-            test -s "$SRC/build/out/r0s/modules/lib/modules/$module.ko"
-          done
-          printf 'source=%s\nksunext=%s\nbuild_only=true\nrom_integrated=false\nboard_pass=false\n' \
-            "$KERNEL_PIN" "$KSU_PIN" > "$SRC/build/out/r0s/.r0s_a16_kernel_host_pass"
-
       - name: Stage the existing A16 reconciler and packager (no ROM checkout)
         shell: bash
         run: |
@@ -183,6 +164,25 @@ jobs:
           PATH="$GITHUB_WORKSPACE/out/tools/bin:$PATH" \
             python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test
           python3 scripts/r0s/package_extremekrnl_update_a16.py self-test
+
+      - name: Reuse existing ExtremeKRNL r0s kernel + ZIP build
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/a16-extremekrnl"
+          # This is the exact invocation in UN1CA's existing
+          # scripts/r0s/build_extremekrnl_a16.sh; no forked build system.
+          (cd "$SRC" && bash ./build.sh -m r0s -k)
+          grep -Fxq 'CONFIG_KSU=y' "$SRC/out/.config"
+          grep -Fxq 'CONFIG_MODVERSIONS=y' "$SRC/out/.config"
+          test -s "$SRC/build/out/r0s/boot.img"
+          test -s "$SRC/build/out/r0s/vendor_boot.img"
+          test -s "$SRC/build/out/r0s/dtbo.img"
+          for module in fingerprint fingerprint_sysfs input_booster_lkm sec_debug_coredump wlan; do
+            test -s "$SRC/build/out/r0s/modules/lib/modules/$module.ko"
+          done
+          printf 'source=%s\nksunext=%s\nbuild_only=true\nrom_integrated=false\nboard_pass=false\n' \
+            "$KERNEL_PIN" "$KSU_PIN" > "$SRC/build/out/r0s/.r0s_a16_kernel_host_pass"
 
       - name: Reconcile current compiled A16 kernel with pinned GZH3 donors
         shell: bash
