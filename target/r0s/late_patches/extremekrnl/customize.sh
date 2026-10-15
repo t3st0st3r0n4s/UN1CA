@@ -8,6 +8,6 @@ LOG "- Integrating pinned GZH3/ExtremeKRNL hybrid with KernelSU Next"
 UN1CA_R0S_LATE_PATCH=1 PATH="$SRC_DIR/out/tools/bin:$PATH" \
     python3 "$SRC_DIR/scripts/r0s/integrate_extremekrnl_a16.py" --apply || return 1
 
-LOG "- Adding pinned KernelSU Next v3.4.1 one-shot manager installer"
+LOG "- Adding manager for the selected KernelSU Next build"
 UN1CA_R0S_LATE_PATCH=1 PATH="$SRC_DIR/out/tools/bin:$PATH" \
     python3 "$SRC_DIR/scripts/r0s/install_ksunext_manager_a16.py" --apply || return 1
