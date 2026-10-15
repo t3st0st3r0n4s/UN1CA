@@ -1,0 +1,146 @@
+name: A16 r0s ExtremeKRNL kernel ZIP (HOST ONLY)
+
+on:
+  push:
+    branches:
+      - sixteen-r0s-kernel-ci
+    paths:
+      - .github/workflows/r0s-kernel-zip.yml
+      - scripts/r0s/ci_hold_raw_kernel_zip.py
+      - docs/r0s/GITHUB_KERNEL_ZIP_CI.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a16-r0s-kernel-zip-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  kernel:
+    name: Compile pinned A16 built-in KSU kernel and quarantine ZIP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    env:
+      KERNEL_PIN: 78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95
+      KSU_PIN: 8f902aeb16033024143ae36cf711df902cf02fae
+      KERNEL_REMOTE: https://github.com/milxnaq/android_kernel_samsung_s5e9925.git
+    steps:
+      - name: Read only the A16 CI helper from the exact triggering commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scripts/r0s target/r0s/installer
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/scripts/r0s/ci_hold_raw_kernel_zip.py" \
+            -o scripts/r0s/ci_hold_raw_kernel_zip.py
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/target/r0s/installer/assertions.edify" \
+            -o target/r0s/installer/assertions.edify
+          python3 scripts/r0s/ci_hold_raw_kernel_zip.py --self-test
+          grep -Fq 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' \
+            target/r0s/installer/assertions.edify
+
+      - name: Reclaim disk on disposable GitHub-hosted runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet \
+            /usr/local/share/powershell /opt/ghc /opt/hostedtoolcache/CodeQL \
+            /usr/local/.ghcup
+          sudo docker image prune --all --force || true
+          sudo docker builder prune --all --force || true
+          df -h /
+
+      - name: Install required kernel build and packaging utilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y --no-install-recommends \
+            git make python3 cpio lz4 zip unzip kmod bc bison flex \
+            libssl-dev libelf-dev xz-utils zstd
+          for tool in git make python3 cpio lz4 zip depmod modinfo sha256sum; do
+            command -v "$tool" >/dev/null
+          done
+
+      - name: Refuse inadequate runner disk before cloning
+        shell: bash
+        run: |
+          set -euo pipefail
+          free="$(df -B1 --output=avail "$RUNNER_TEMP" | tail -1 | tr -d ' ')"
+          echo "Runner free space before cloning: $free bytes"
+          if (( free < 24 * 1024 * 1024 * 1024 )); then
+            echo "::error::Kernel build requires >=24 GiB free after runner cleanup; use a larger runner or adjust build infrastructure, not source pins."
+            exit 2
+          fi
+
+      - name: Obtain pinned upstream ExtremeKRNL and KernelSU Next (no ROM checkout)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/a16-extremekrnl"
+          git clone --single-branch --branch sixteen --filter=blob:none \
+            "$KERNEL_REMOTE" "$SRC"
+          git -C "$SRC" cat-file -e "$KERNEL_PIN^{commit}"
+          git -C "$SRC" checkout --detach "$KERNEL_PIN"
+          test "$(git -C "$SRC" rev-parse HEAD)" = "$KERNEL_PIN"
+          git -C "$SRC" submodule sync --recursive
+          git -C "$SRC" submodule update --init --recursive
+          git -C "$SRC/KernelSU-Next" fetch origin tag v3.4.1
+          git -C "$SRC/KernelSU-Next" checkout --detach "$KSU_PIN"
+          test "$(git -C "$SRC/KernelSU-Next" rev-parse HEAD)" = "$KSU_PIN"
+          grep -Fxq 'CONFIG_KSU=y' "$SRC/arch/arm64/configs/ksu.config"
+          grep -Fxq 'SUBLEVEL = 269' "$SRC/Makefile"
+          test -f "$SRC/toolchain/mkbootimg/mkbootimg.py"
+          echo "A16 exact pinned kernel/KSU source checkout PASS"
+          df -h "$SRC"
+
+      - name: Verify remaining room for actual compilation
+        shell: bash
+        run: |
+          set -euo pipefail
+          free="$(df -B1 --output=avail "$RUNNER_TEMP" | tail -1 | tr -d ' ')"
+          echo "Free after checkout: $free bytes"
+          if (( free < 12 * 1024 * 1024 * 1024 )); then
+            echo "::error::Less than 12 GiB before compiler; no unpinned build or partial artifact will be published."
+            exit 2
+          fi
+
+      - name: Reuse existing ExtremeKRNL r0s kernel + ZIP build
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/a16-extremekrnl"
+          # This is the exact invocation in UN1CA's existing
+          # scripts/r0s/build_extremekrnl_a16.sh; no forked build system.
+          (cd "$SRC" && bash ./build.sh -m r0s -k)
+          grep -Fxq 'CONFIG_KSU=y' "$SRC/out/.config"
+          grep -Fxq 'CONFIG_MODVERSIONS=y' "$SRC/out/.config"
+          test -s "$SRC/build/out/r0s/boot.img"
+          test -s "$SRC/build/out/r0s/vendor_boot.img"
+          test -s "$SRC/build/out/r0s/dtbo.img"
+
+      - name: Quarantine raw ZIP with mandatory E3099 and verify module provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/r0s/ci_hold_raw_kernel_zip.py \
+            "$RUNNER_TEMP/a16-extremekrnl" "$GITHUB_WORKSPACE/dist"
+          sha256sum dist/*.zip | tee kernel-zip-sha256.txt
+          cat kernel-zip-sha256.txt >> "$GITHUB_STEP_SUMMARY"
+          echo 'UNRECONCILED; E3099; NOT FLASHABLE' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload quarantined build artifact (not a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: UN1CA-A16-RAW-ExtremeKRNL-KSUNext-E3099-NOT-FLASHABLE
+          path: |
+            dist/*.zip
+            dist/provenance.json
+            dist/NOT_FOR_FLASH.txt
+            kernel-zip-sha256.txt
+          if-no-files-found: error
+          retention-days: 7
