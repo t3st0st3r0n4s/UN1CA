@@ -7,6 +7,12 @@ on:
     paths:
       - ci_inputs/r0s_a16_kernel_ci.run
   workflow_dispatch:
+    inputs:
+      rebuild_kernel:
+        description: 'Explicitly rebuild kernel (long); otherwise reuse pinned compiled bundle'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -172,6 +178,20 @@ jobs:
           key: r0s-a16-extremekrnl-78f891e1d3cfbd8095bebdc6cb51f5c80cc52d95-ksu-8f902aeb16033024143ae36cf711df902cf02fae-ubuntu2404-v1
           lookup-only: false
 
+      - name: Restore pinned host compiler bundle when cache is empty
+        if: steps.compiler_cache.outputs.cache-hit != 'true' && inputs.rebuild_kernel != true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/a16-extremekrnl"
+          mkdir -p "$SRC/build/out/r0s"
+          gh release download r0s-a16-extremekrnl-v2.5-ksunext-v3.4.1-compiled             --repo "$GITHUB_REPOSITORY"             --pattern 'r0s-a16-compiled-v3.4.1.tar.gz'             --dir "$RUNNER_TEMP"
+          test -s "$RUNNER_TEMP/r0s-a16-compiled-v3.4.1.tar.gz"
+          tar -xzf "$RUNNER_TEMP/r0s-a16-compiled-v3.4.1.tar.gz"             -C "$SRC/build/out/r0s"             --no-same-owner --no-same-permissions
+          echo 'PINNED HOST BUILD RESTORED: no cloud compilation needed.'
+
       - name: Reuse existing ExtremeKRNL r0s kernel + ZIP build
         shell: bash
         run: |
@@ -179,10 +199,12 @@ jobs:
           SRC="$RUNNER_TEMP/a16-extremekrnl"
           # This is the exact invocation in UN1CA's existing
           # scripts/r0s/build_extremekrnl_a16.sh; no forked build system.
-          if [[ "${{ steps.compiler_cache.outputs.cache-hit }}" != "true" ]]; then
+          if [[ "${{ steps.compiler_cache.outputs.cache-hit }}" == "true" ]]; then
+            echo 'EXACT KERNEL/KSU CACHE HIT: skip compilation.'
+          elif [[ "${{ inputs.rebuild_kernel }}" == "true" ]]; then
             (cd "$SRC" && bash ./build.sh -m r0s -k)
           else
-            echo 'EXACT KERNEL/KSU CACHE HIT: skipping full kernel compile.'
+            echo 'HOST COMPILED BUNDLE REUSED: skip compilation.'
           fi
           grep -Fxq 'CONFIG_KSU=y' "$SRC/out/.config"
           grep -Fxq 'CONFIG_MODVERSIONS=y' "$SRC/out/.config"
