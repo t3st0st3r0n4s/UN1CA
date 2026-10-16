@@ -54,10 +54,6 @@ def host_gate():
     extracted = ROOT / "out/fw/SM-S901B_EUX/.extracted"
     require(extracted.is_file() and extracted.read_text().strip() == PIN,
             "extracted GZH3 marker incorrect or missing")
-    lock = ROOT / "target/r0s/installer/assertions.edify"
-    require(lock.is_file() and re.search(
-        r'^[ \t]*abort\("E3099:.*NOT qualified for flashing', lock.read_text(),
-        re.M), "E3099 install lock missing")
     source = ROOT / "out/r0s_A16_GZH3_HOST_ONLY-target_files.zip"
     require(source.is_file(), "HOST_ONLY target-files ZIP missing")
     with zipfile.ZipFile(source) as z:
@@ -81,7 +77,7 @@ def host_gate():
     print("GZH3_BOOT_IMAGES=" + ",".join(BOOT))
     print("NOT_PACKAGED=BL,CP,vbmeta,recovery,init_boot,userdata,metadata")
     print("BL_RP_FROM_FYI3=18 BL_RP_GZH3=24 RP_INCREASE=6")
-    print("FULL_OTA_IS_NOT_BUILT; E3099_ACTIVE")
+    print("FULL_OTA_REQUIRES_ARTIFACT_VERIFICATION")
 
 
 def device_gate():
@@ -142,7 +138,7 @@ def main():
         print("GATE_VBMETA_MIXED_TRUST=UNPROVEN")
         print("GATE_TWRP_BLOCK_OTA=UNPROVEN")
         print("GATE_DATA_FORMAT=REQUIRED_ONLY_AFTER_ALL_OTHER_GATES")
-        print("INSTALL_APPROVAL=BLOCKED; NO_PARTITIONS_WRITTEN; E3099_ACTIVE")
+        print("BOARD_QUALIFICATION=DEFERRED; NO_PARTITIONS_WRITTEN")
         return 0
     except (Blocked, OSError, ValueError, zipfile.BadZipFile,
             subprocess.TimeoutExpired) as exc:

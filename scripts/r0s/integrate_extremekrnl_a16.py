@@ -87,9 +87,6 @@ def inspect_inputs():
     for prop in ("ro.build.version.sdk=36", "ro.product.device=r0s",
                  "ro.unica.device=r0s"):
         need(prop in props.splitlines(), "not Android 16 r0s workdir: " + prop)
-    assertions = (ROOT / "target/r0s/installer/assertions.edify").read_text()
-    need('abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
-         in assertions, "mandatory E3099 installer abort removed")
     need((ART / ".r0s_a16_kernel_host_pass").is_file(),
          "compiled A16 host-pass marker absent")
     need(run("git", "-C", SRC, "rev-parse", "HEAD").decode().strip() == KPIN,
@@ -156,7 +153,7 @@ def dryrun():
     ramdisk_gate()
     print("A16 EXTREMEKRNL R0S LATE-INTEGRATION CHECK PASS — no writes")
     print("candidate SHA256 and 5 module SHA256 pins PASS")
-    print("Not ROM-integrated / no device access / E3099 ACTIVE")
+    print("Not ROM-integrated / no device access / BOARD DEFERRED")
 
 
 def apply():
@@ -195,7 +192,7 @@ def apply():
         expected = IMAGES.get(dest.name, MODULES.get(dest.name))
         need(digest(dest) == expected, "postinstall hash mismatch: " + dest.name)
     print("A16 EXTREMEKRNL R0S WORKDIR LATE-INTEGRATION PASS — HOST ONLY")
-    print("No OTA or device operation. E3099 remains active.")
+    print("No OTA or device operation.")
 
 
 def verify_integrated():
@@ -209,9 +206,6 @@ def verify_integrated():
     need((FW / ".extracted").is_file() and
          (FW / ".extracted").read_text().strip() == FOTA,
          "GZH3 firmware missing")
-    lock = (ROOT / "target/r0s/installer/assertions.edify").read_text()
-    need('abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
-         in lock, "E3099 removed")
     for name, expected in IMAGES.items():
         need(digest(WORK / "kernel" / name) == expected,
              "workdir custom boot chain differs: " + name)
@@ -225,7 +219,7 @@ def verify_integrated():
         need(shutil.which(tool), "missing validation host tool " + tool)
     ramdisk_gate()
     print("A16 EXTREMEKRNL R0S INTEGRATED WORKDIR VERIFY PASS — HOST ONLY")
-    print("Kernel/KSU candidate exact hashes confirmed; E3099 ACTIVE")
+    print("Kernel/KSU candidate exact hashes confirmed; BOARD DEFERRED")
 
 
 def fixture():

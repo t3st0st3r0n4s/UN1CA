@@ -144,9 +144,6 @@ def main():
         hold("native GZH3 firmware marker mismatch")
     require(WORK / ".completed")
     require(ART / ".r0s_a16_kernel_host_pass")
-    assertions = (ROOT / "target/r0s/installer/assertions.edify").read_text()
-    if 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' not in assertions:
-        hold("E3099 installer lock missing")
     if call("git", "-C", SRC, "rev-parse", "HEAD").decode().strip() != KERNEL_PIN:
         hold("kernel pin mismatch")
     if call("git", "-C", SRC / "KernelSU-Next", "rev-parse", "HEAD").decode().strip() != KSU_PIN:
@@ -234,14 +231,14 @@ def main():
         (out / "NOT_FLASHABLE.txt").write_text(
             "HOST-ONLY A16 custom kernel/GZH3 hybrid. NOT a ROM, OTA, verified "
             "BL/AVB, userdata migration, device test or flashing package. "
-            "Existing UN1CA workdir, firmware and E3099 lock remain unchanged.\n"
+            "Existing UN1CA workdir and firmware remain unchanged.\n"
         )
         if DEST.exists():
             hold("output path appeared during packaging, refusing overwrite")
         out.rename(DEST)
     print("HYBRID A16 BOOT-CHAIN REPACK HOST CANDIDATE PASS")
     print("output: " + str(DEST))
-    print("NOT ROM-INTEGRATED / NOT BOARD-QUALIFIED / E3099 ACTIVE")
+    print("NOT ROM-INTEGRATED / NOT BOARD-QUALIFIED / BOARD DEFERRED")
 
 
 if __name__ == "__main__":

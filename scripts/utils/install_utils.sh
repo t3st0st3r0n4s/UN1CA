@@ -105,18 +105,7 @@ PRINT_ASSERTIONS()
 
     local ASSERTIONS="$SRC_DIR/target/$DEVICE/installer/assertions.edify"
     if [ -f "$ASSERTIONS" ]; then
-        if [[ "$DEVICE" == "r0s" && "${UN1CA_R0S_INSTALLABLE_OTA:-0}" == "1" ]]; then
-            # Explicit r0s packaging mode ONLY. Preserve model assertion and all
-            # other edify; omit just the exact development-only E3099 abort.
-            local E3099_LINE='abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
-            if [[ "$(grep -Fxc "$E3099_LINE" "$ASSERTIONS")" != "1" ]]; then
-                LOGE "r0s installer abort does not match the pinned E3099 statement"
-                return 1
-            fi
-            awk -v lock="$E3099_LINE" '$0 != lock { print }' "$ASSERTIONS"
-        else
-            cat "$ASSERTIONS"
-        fi
+        cat "$ASSERTIONS"
     fi
 }
 

@@ -89,4 +89,4 @@ done
 
 printf '\nRECOVERY FSTAB HOST INVENTORY COMPLETE (OTA still unqualified)\n'
 printf 'STOCK MODULE VERMAGIC COHERENCE PASS (not rebuilt kernel ABI proof)\n'
-printf 'ROM/SELINUX-NORMAL-BOOT/BOARD remain unverified; E3099 stays locked\n'
+printf 'ROM/SELINUX-NORMAL-BOOT/BOARD remain unverified; BOARD remains unverified\n'

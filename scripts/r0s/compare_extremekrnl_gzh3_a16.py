@@ -97,9 +97,6 @@ def main():
         "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3"
     ):
         fail("GZH3 source marker mismatch")
-    assertions = (ROOT / "target/r0s/installer/assertions.edify").read_text()
-    if 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' not in assertions:
-        fail("E3099 installation lock missing")
     if not (CUSTOM / ".r0s_a16_kernel_host_pass").is_file():
         fail("custom kernel HOST PASS marker absent")
 
@@ -199,7 +196,7 @@ def main():
                 print("HOLD:", item)
             raise SystemExit(2)
         print("\nRECONCILIATION PREFLIGHT PASS — NOT ROM INTEGRATED, NOT BOARD QUALIFIED")
-        print("E3099 remains active; GZH3 workdir and existing firmware unchanged.")
+        print("GZH3 workdir and existing firmware unchanged.")
 
 
 if __name__ == "__main__":

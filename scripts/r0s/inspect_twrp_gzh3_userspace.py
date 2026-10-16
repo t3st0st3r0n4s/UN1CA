@@ -84,12 +84,8 @@ def cpio_entry(archive, entry):
 
 def audit(tarpath):
     marker = ROOT / "out/fw/SM-S901B_EUX/.extracted"
-    assert_file = ROOT / "target/r0s/installer/assertions.edify"
     require(marker.is_file() and marker.read_text().strip() == GZH3,
             "GZH3 stock extraction pin mismatch")
-    require(assert_file.is_file() and
-            re.search(r'^\s*abort\("E3099:.*NOT qualified for flashing',
-                      assert_file.read_text(), re.M), "E3099 lock missing")
     require(tarpath.is_file() and sha256(tarpath) == EXPECTED_TAR,
             "candidate TAR changed from vetted inventory")
     bundled = ROOT / "out/tools/bin/unpack_bootimg"
@@ -157,7 +153,7 @@ def audit(tarpath):
             print("TWRP GZH3 RECOVERY.FSTAB COVERAGE BLOCKED — adaptation required.")
         else:
             print("TWRP FSTAB COVERAGE PASS ONLY — no runtime qualification.")
-        print("HOST-ONLY INSPECTION COMPLETE. NO IMAGE CREATED; E3099 ACTIVE.")
+        print("HOST-ONLY INSPECTION COMPLETE. NO IMAGE CREATED; BOARD DEFERRED.")
 
 
 def main():

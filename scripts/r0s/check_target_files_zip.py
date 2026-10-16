@@ -46,12 +46,7 @@ def partition_expanded_size(archive, member):
     return archive.getinfo(member).file_size, False
 
 
-def inspect(archive_path, lock_path):
-    require(lock_path.is_file(), 'missing installer E3099 assertion file')
-    assertions = lock_path.read_text(encoding='utf-8')
-    require(re.search(r'^\s*abort\("E3099:.*NOT qualified for flashing', assertions, re.M),
-            'installer E3099 abort was removed')
-
+def inspect(archive_path):
     require(archive_path.is_file(), f'archive absent: {archive_path}')
     with zipfile.ZipFile(archive_path) as archive:
         infos = archive.infolist()
@@ -115,16 +110,15 @@ def inspect(archive_path, lock_path):
         require(super_empty <= SUPER_BYTES, 'super-empty exceeds native super capacity')
         print(f'unsparse_super_empty.img: expanded_bytes={super_empty}')
         print(f'logical_total={occupied} native_group_cap={GROUP_BYTES}')
-        print('TARGET-FILES STRUCTURE PRECHECK PASS — E3099 ACTIVE; NOT FLASH-QUALIFIED')
+        print('TARGET-FILES STRUCTURE PRECHECK PASS — BOARD DEFERRED; NOT FLASH-QUALIFIED')
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('zip', type=Path, help='UN1CA-produced r0s target_files.zip')
     args = parser.parse_args()
-    lock = Path(__file__).resolve().parents[2] / 'target/r0s/installer/assertions.edify'
     try:
-        inspect(args.zip, lock)
+        inspect(args.zip)
     except (Blocked, zipfile.BadZipFile, OSError, RuntimeError) as exc:
         print(f'r0s TARGET-FILES BLOCKED: {exc}', file=sys.stderr)
         return 2

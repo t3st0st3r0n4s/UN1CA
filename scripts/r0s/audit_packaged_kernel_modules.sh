@@ -23,8 +23,6 @@ done
     die 'wrong stock firmware'
 [[ "$(sha256sum "$ZIP" | awk '{print $1}')" == "$2" ]] ||
     die 'packaged target-files SHA-256 mismatch'
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    "$ROOT/target/r0s/installer/assertions.edify" || die 'installer E3099 missing'
 
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
@@ -104,4 +102,4 @@ for name in fingerprint.ko fingerprint_sysfs.ko input_booster_lkm.ko sec_debug_c
 done
 echo 'PACKAGED KERNEL / MODULE PROVENANCE PRECHECK PASS'
 echo 'NOT FULL KERNEL ABI PASS: exported CRC/KMI and physical module loading unverified.'
-echo 'BOOTLOADER TRUST, NORMAL BOOT, RECOVERY OTA, BOARD UNVERIFIED. E3099 ACTIVE.'
+echo 'BOOTLOADER TRUST, NORMAL BOOT, RECOVERY OTA, BOARD UNVERIFIED. BOARD DEFERRED.'

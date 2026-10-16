@@ -121,7 +121,7 @@ def main():
     else:
         print("DEVELOPMENT SIGNER KEY PRESENT in parsed otacerts.zip; no execution proof.")
     print("GZH3 RECOVERY CERTIFICATE COMPARISON COMPLETE (READ-ONLY)")
-    print("E3099 ACTIVE. NOT OTA/BOARD QUALIFIED.")
+    print("BOARD DEFERRED. NOT OTA/BOARD QUALIFIED.")
     return 0
 
 

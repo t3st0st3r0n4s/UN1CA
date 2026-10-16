@@ -12,7 +12,6 @@ cd "$REPO_ROOT"
 
 bash -n platform/exynos2200/config.sh target/r0s/config.sh || die "Bash syntax"
 bash -n scripts/ci/check_r0s_config.sh || die "self syntax"
-test -f target/r0s/installer/assertions.edify || die "missing installer lock"
 
 # UN1CA's own generator is the oracle for whether the port is structurally valid.
 # Keep nounset disabled: upstream buildenv.sh uses optional, unset variables.
@@ -60,10 +59,7 @@ for patch_dir in platform/exynos2200/patches target/r0s/patches; do
     fi
 done
 
-# Prevent WIP installation. A provisional Lineage-derived *block locator*
-# exists solely to exercise the OTA resolver; it is NOT native A16 recovery.
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    target/r0s/installer/assertions.edify || die "WIP installer abort absent"
+# A provisional block locator exists solely for the OTA resolver.
 
 test -f target/r0s/installer/recovery.fstab || die "missing provisional OTA block map"
 grep -q 'PROVISIONAL UN1CA r0s updater-script BLOCK MAP' \

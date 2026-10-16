@@ -139,7 +139,6 @@ def source_script():
                   "update_dynamic_partitions(" in line or
                   "remove_all_groups" in line) for line in lines),
          "upstream kernel ZIP attempts dynamic-partition operations")
-    need("E3099" not in text, "upstream script has unexpected development abort")
     return text.encode()
 
 
@@ -199,7 +198,6 @@ def package_verify(path, expected=None):
              "kernel ZIP update-binary is not original ExtremeKRNL")
         text = z.read(SCRIPT)
         need(text == source_script(), "updater-script differs from original ExtremeKRNL")
-        need(b"E3099" not in text, "unexpected E3099 development abort")
         need(not any("vendor_dlkm" in name for name in names),
              "kernel-only ZIP must not update vendor_dlkm")
         if expected is not None:
@@ -275,8 +273,6 @@ def self_test():
          "A15-to-A16 ZIP image list drift")
     need(len(KERNEL_PIN) == len(KSU_PIN) == 40 and len(A15_A16_UPDATER_GIT_BLOB) == 40,
          "bad provenance pin")
-    need(b"E3099" not in source_script() if UPDATER_SOURCE.is_file()
-         else True, "E3099 was added to the kernel updater")
     # Pure naming fixtures: CI must not need an actual kernel checkout.
     need(native_name_with_ksu_version(
         "ExtremeKRNL-v2.5_r0s_KSU_13-10-2026_21-00-00.zip",

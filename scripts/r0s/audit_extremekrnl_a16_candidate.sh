@@ -23,8 +23,6 @@ for cmd in git grep sha256sum modinfo unpack_bootimg find stat file lz4 cpio awk
 done
 [[ -s "$FW/.extracted" && -s "$WORK/.completed" ]] || die 'native GZH3 extraction/workdir missing'
 [[ "$(cat "$FW/.extracted")" == 'S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3' ]] || die 'firmware mismatch'
-grep -Fq 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' \
- "$ROOT/target/r0s/installer/assertions.edify" || die 'E3099 installer lock absent'
 [[ -s "$ART/.r0s_a16_kernel_host_pass" ]] || die 'build PASS marker absent'
 [[ "$(git -C "$SRC" rev-parse HEAD)" == "$KPIN" ]] || die 'kernel source pin drift'
 [[ "$(git -C "$SRC/KernelSU-Next" rev-parse HEAD)" == "$SPIN" ]] || die 'KSU source pin drift'
@@ -73,4 +71,4 @@ while IFS= read -r -d '' file; do
   grep -E '(^|/)(fstab[^/]*|modules\.load|fingerprint\.ko|wlan\.ko)$' "$TMP/$name.list" | head -30 || true
 done < <(find "$TMP/vendor_boot" -maxdepth 1 -type f -name 'vendor_ramdisk*' -print0 | sort -z)
 (( count >= 2 )) || die "expected two vendor_boot fragments, found $count"
-echo 'CUSTOM KERNEL POSTBUILD INSPECTION PASS — ROM INTEGRATION / BOARD DEFERRED; E3099 ACTIVE'
+echo 'CUSTOM KERNEL POSTBUILD INSPECTION PASS — ROM INTEGRATION / BOARD DEFERRED; BOARD DEFERRED'

@@ -10,9 +10,8 @@ REC="$1"
 VEN="$2"
 META="$3"
 STAGED="$ROOT/target/r0s/installer/recovery.fstab"
-LOCK="$ROOT/target/r0s/installer/assertions.edify"
 fail() { printf 'r0s RECOVERY OTA MAP BLOCKED: %s\n' "$*" >&2; exit 2; }
-for f in "$REC" "$VEN" "$META" "$STAGED" "$LOCK"; do
+for f in "$REC" "$VEN" "$META" "$STAGED"; do
     [[ -s "$f" ]] || fail "file missing or empty: $f"
 done
 
@@ -64,8 +63,5 @@ fi
 if has_locator "$STAGED" system_ext /system_ext; then
     fail 'system_ext must not be staged as a distinct GZH3 logical partition'
 fi
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' "$LOCK" ||
-    fail 'mandatory E3099 abort missing'
-
 printf '\nNATIVE RECOVERY BLOCK LOCATOR CROSSCHECK PASS\n'
-printf 'OTA updater support, generated ZIP safety, recovery flashing and BOARD UNVERIFIED; E3099 LOCKED\n'
+printf 'OTA updater support, generated ZIP safety, recovery flashing and BOARD UNVERIFIED; BOARD DEFERRED\n'

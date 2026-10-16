@@ -55,4 +55,4 @@ mv -- "$PARTIAL" "$FINAL"
 trap - EXIT
 sha256sum "$FINAL"
 echo "HOST-ONLY TARGET-FILES CREATED: $FINAL"
-echo 'NOT flashable or board-qualified; E3099 remains active.'
+echo 'NOT flashable or board-qualified; BOARD remains unverified.'
