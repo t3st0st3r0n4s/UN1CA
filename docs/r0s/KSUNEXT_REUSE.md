@@ -58,5 +58,5 @@ A15 kernel evidence:
   in TachyonOS `r0s-fyi3`. **Not imported**: only qualified with the A15 kernel.
 
 `scripts/ci/check_r0s_ksu_staging.sh` proves *staging boundaries*, not
-an Android 16 runtime implementation. `target/r0s/installer/assertions.edify`
-remains locked with `E3099`.
+an Android 16 runtime implementation. the normal UN1CA installer
+contains no test-only abort.

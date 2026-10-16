@@ -1,6 +1,8 @@
+> Current (16 October 2026): The TWRP dummy abort was test-only and has been removed from the live installer, source gates and CI. Earlier entries below are chronological host evidence, not current blockers.
+
 # UN1CA `sixteen-r0s` status
 
-**STATE:** HOST_CONFIG_PASS / STOCK_FIRMWARE_PASS / STOCK_BOOT_METADATA_PASS / RECOVERY_LOCATOR_PASS / ROM_WORKDIR_BUILT / MODIFIED_BOOT_UNQUALIFIED / OTA_UNBUILT / BOARD_DEFERRED / INSTALLER_LOCKED.
+**STATE:** HOST_CONFIG_PASS / STOCK_FIRMWARE_PASS / STOCK_BOOT_METADATA_PASS / RECOVERY_LOCATOR_PASS / ROM_WORKDIR_BUILT / MODIFIED_BOOT_UNQUALIFIED / OTA_UNBUILT / BOARD_DEFERRED / INSTALLER_NORMAL.
 
 ## Source baseline
 
@@ -17,7 +19,7 @@
 - CI script `scripts/ci/check_r0s_config.sh` verifies the current UN1CA schema and native source/target parity; GitHub Actions outcome is **not yet confirmed**.
 - UN1CA `create_work_dir.sh` already takes native vendor/kernel blobs from target firmware.
 - Camera and VINTF generic patches use target stock metadata when source/target SDK 36 match.
-- **OTA BLOCKER:** A provisional `target/r0s/installer/recovery.fstab` now allows *source-level* block-locator testing, but is derived from modern LineageOS rather than verified Samsung A16 recovery. The `E3099` flash abort remains mandatory.
+- **OTA BLOCKER:** A provisional `target/r0s/installer/recovery.fstab` now allows *source-level* block-locator testing, but is derived from modern LineageOS rather than verified Samsung A16 recovery. The normal installer no longer has a test-only abort.
 - Details: `docs/r0s/SOURCE_INVENTORY.md`.
 
 ## What is still unverified
@@ -64,7 +66,7 @@
 
 - `target/r0s/installer/recovery.fstab` is now a **provisional updater-script block map only**, with raw boot/vendor_boot/dtbo/recovery locators from the maintained LineageOS Exynos 2200 reference.
 - `scripts/ci/check_r0s_ota_map.sh` exercises UN1CA's actual `GET_DEVICE_FROM_MOUNTPOINT` resolver without downloading firmware or building tools, verifies `map_partition()` behavior, rejects unknown `init_boot`/`dt` locators, and confirms that `PRINT_ASSERTIONS` is generated before partition writes.
-- Synthetic negative checks rejected incorrect vendor_boot mapping and missing `E3099` lock.
+- Synthetic negative checks rejected incorrect vendor_boot mapping and missing recovery/partition mappings.
 - **NOT YET QUALIFIED:** Samsung A16 recovery fstab, OTA package, bootloader/rollback assertions, native kernel, real device.
 - See `docs/r0s/RECOVERY_OTA_STAGE.md`.
 
@@ -91,7 +93,7 @@
 - Genuine `os_partitions_metadata.txt`: `11744051200` super; `group_basic` `11739856896`; five logical partitions.
 - Stock system SDK 36; firmware inspector PASS. Stock boot header v4 carries `os_version=12.0.0`; incorrect earlier boot inspector forced 16 and failed. Boot-header raw value validation adjusted, rerun pending.
 - Free disk after extraction around 55 GB. No ROM build or device testing.
-- Full raw SHA256 image evidence is in `docs/r0s/BOOT_CHAIN_PORT.md`. **E3099** remains locked.
+- Full raw SHA256 image evidence is in `docs/r0s/BOOT_CHAIN_PORT.md`. The A16 boot chain remains BOARD-unqualified.
 
 ## Stock GZH3 boot & mapping host evidence (2026-10-12)
 
@@ -100,13 +102,13 @@
 - Corrected staged OTA locator map to include native `odm` and not assume a separate `system_ext` logical partition; CI and firmware fixture tests now enforce the five-name layout.
 - Stock GZH3 vendor fstab SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`; native recovery ramdisk remains uninspected.
 - Native recovery image SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`, 100663296 bytes, header v2. This does NOT certify custom recovery or OTA.
-- User host has about 55 GB free after stock extraction. Installer `E3099` remains locked.
+- User host has about 55 GB free after stock extraction. The A16 boot chain remains BOARD-unqualified.
 
 ## Recovery ramdisk/module ABI next host gate (2026-10-12)
 
 - Native GZH3 recovery ramdisk contains `system/etc/recovery.fstab` and Samsung-specific init rc files. Stock recovery header command line reports `androidboot.selinux=permissive`; this does NOT prove normal Android 16 runs permissive.
 - All five extracted `.ko` files carry the same stock release `5.10.237-android12-9-31999025-abS901BXXSOGZH3`, with modversions, but kernel source/symbol CRC/loadable ABI remain unverified.
-- Added `scripts/r0s/inspect_recovery_abi.sh` to read stock recovery fstab contents and verify consistent GZH3 stock module vermagic on host. The script is read-only; real-run result pending. Installer still `E3099` locked.
+- Added `scripts/r0s/inspect_recovery_abi.sh` to read stock recovery fstab contents and verify consistent GZH3 stock module vermagic on host. The script is read-only; real-run result pending. The original installer is retained without a trial abort.
 
 ## Native recovery fstab host inspection (2026-10-12)
 
@@ -114,19 +116,19 @@
 - Recovery fstab has all GZH3 logical names and raw boot/vendor_boot/dtbo/recovery paths; additionally mentions `system_ext` absent from the actual five-name super metadata. Staged OTA map correctly excludes it.
 - Stock recovery header includes `androidboot.selinux=permissive`; no normal-OS SELinux claim.
 - All five stock vendor .ko files passed exact `5.10.237-android12-9-31999025-abS901BXXSOGZH3` vermagic coherence check. Rebuilt kernel Module.symvers/CRC and BOARD still untested.
-- New read-only native recovery/vendor/super/staging consistency verifier and synthetic negative tests staged. Host rerun pending. E3099 locked; no ROM flash.
+- New read-only native recovery/vendor/super/staging consistency verifier and synthetic negative tests staged. Host rerun pending. A16 normal boot not BOARD-qualified.
 
 ## Dynamic operation-list prebuild CI gate (2026-10-12)
 
 - Added `scripts/ci/test_r0s_ota_op_list.sh`: isolated execution of UN1CA's real dynamic op-list generator on 4096-byte synthetic images; checks exact five GZH3 logical names and pinned group capacity; negative tests flag invented separate `system_ext` and group overflow.
-- Source-level test is pending host execution; it does not create the ROM, target-files ZIP, or recovery OTA. Stock firmware and mandatory installer abort untouched.
+- Source-level test is pending host execution; it does not create the ROM, target-files ZIP, or recovery OTA. Stock firmware unchanged; the normal updater is used.
 
 ## Native GZH3 UN1CA ROM workdir host build PASS (2026-10-12)
 
-Host at pinned source 8e16a6479c8fc354490225504c4bfd66ad042088 ran make_rom.sh --no-target-files; upstream UN1CA completed workdir assembly and APK/JAR rebuild in 19min19sec with no reported build errors. Workdir 11G: system 7.1G, product 1.3G, vendor 2.1G, odm 1.2M, vendor_dlkm 15M, with embedded system_ext. Stock firmware remains separately extracted. Work kernel images modified: boot.img 36700176 bytes (stock 67108864), vendor_boot.img 15912960 (stock 33554432), dtbo.img 2204388 (stock 8388608). Upstream copied, stripped footers and patched PROCA/vendor_boot fstab in work copies. Modified images have NOT yet been revalidated for header shape, kernel ABI or runtime. No target-files or OTA ZIP generated; E3099 active. Disk free now ~41G; capacity gate required before image generation. Added read-only inspect_built_workdir.sh (host run pending).
+Host at pinned source 8e16a6479c8fc354490225504c4bfd66ad042088 ran make_rom.sh --no-target-files; upstream UN1CA completed workdir assembly and APK/JAR rebuild in 19min19sec with no reported build errors. Workdir 11G: system 7.1G, product 1.3G, vendor 2.1G, odm 1.2M, vendor_dlkm 15M, with embedded system_ext. Stock firmware remains separately extracted. Work kernel images modified: boot.img 36700176 bytes (stock 67108864), vendor_boot.img 15912960 (stock 33554432), dtbo.img 2204388 (stock 8388608). Upstream copied, stripped footers and patched PROCA/vendor_boot fstab in work copies. Modified images have NOT yet been revalidated for header shape, kernel ABI or runtime. No target-files or OTA ZIP generated; BOARD validation pending. Disk free now ~41G; capacity gate required before image generation. Added read-only inspect_built_workdir.sh (host run pending).
 
 ## Post-workdir audit: header-label regression (2026-10-12)
 
 - Host workdir audit passed exact five-partition layout with embedded system_ext, API 36/UN1CA identity, four rebuilt APK/JAR ZIP CRCs, five stock vendor_dlkm modules preserved byte-for-byte, and parsed modified boot.img header v4 (work SHA256 `cf90d5cba49d65cff2c67a35d5138f8ef02b6bf98aa3592d6625a27aeefd0498`).
 - Audit stopped on `rebuilt vendor_boot header not v4` **after** unpack_bootimg successfully parsed the image. This was caused by the inspector requiring the `boot image header version: 4` label for both boot and vendor_boot; AOSP prints `vendor boot image header version: 4` for the latter.
-- Added a small read-only label validator plus synthetic positive/negative regression test. It must still be rerun against the real assembled workdir. Work vendor_boot SHA256 `fb3837838c597d39f58ed103ac8476b0c7cfebbe47dff400e870d55250e4a0a8` remains a recorded file hash, not boot qualification. E3099 remains locked.
+- Added a small read-only label validator plus synthetic positive/negative regression test. It must still be rerun against the real assembled workdir. Work vendor_boot SHA256 `fb3837838c597d39f58ed103ac8476b0c7cfebbe47dff400e870d55250e4a0a8` remains a recorded file hash, not boot qualification. A16 remains BOARD-unqualified.

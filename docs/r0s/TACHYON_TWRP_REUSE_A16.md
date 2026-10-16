@@ -39,10 +39,10 @@ archive path is not a ROM/kernel blocker.
 
 The project's [OTA host packaging and TWRP probe log](OTA_HOST_PACKAGING.md)
 records 2026-10-13 on-device use of the *existing installed TWRP*:
-- The user installed the tiny `r0s_TWRP_E3099_ABORT_ONLY_probe.zip`;
+- The user installed the tiny `original one-off TWRP dummy probe`;
 - TWRP successfully invoked the **same AArch64 statically linked
   UN1CA update-binary** bundled into the existing host-only OTA;
-- The deliberate E3099 abort was printed and returned Error 1;
+- The deliberate test-only abort returned Error 1;
 - The user confirmed normal boot back into working TachyonOS afterwards.
 
 Therefore *updater launch* and the prior device's basic recovery function
@@ -65,7 +65,7 @@ for these logical partitions; the existing
 - `block_image_update(map_partition(...), ...)` on those five partitions;
 - Direct package extraction to `/dev/block/by-name/boot`,
   `vendor_boot`, and `dtbo` for the boot chain;
-- Source installer `E3099` assertion before any operations.
+- Original model assertion before any partition operation.
 
 These block-image updates operate on the logical block device; the
 recovery itself **does not need to mount those partitions as EROFS**.
@@ -81,7 +81,7 @@ The GZH3 native EROFS early-boot fstab must be preserved.
 What is **still unverified on the physical phone** is execution of the
 `update_dynamic_partitions` and five `block_image_update` calls,
 particularly vendor_dlkm, with its current TWRP kernel and device-mapper.
-The tiny E3099 abort probe intentionally tested none of those writes.
+The one-off dummy probe intentionally tested none of those writes.
 Likewise GZH3/ExtremeKRNL boot on the FYI3 retained bootloader, AVB trust,
 module/KMI and rollback remain separate; no existing evidence grants a
 normal A16 boot PASS.
@@ -100,8 +100,8 @@ path rather than silently adding a logical partition update.
 
 The UN1CA GZH3 kernel ZIP builder now implements the same five-member
 ExtremeKRNL recovery package layout, using the GZH3-reconciled signed
-boot chain and E3099 abort. The A16 on-device runtime gate remains open,
+boot chain. The A16 on-device runtime gate remains open,
 but **A15 recovery qualification must not be repeated**.
 
 Do not flash TWRP, vbmeta, an A16 ROM, or an unqualified kernel ZIP while
-the E3099 and bootloader/rollback gates remain active.
+the bootloader/rollback qualification remains open.

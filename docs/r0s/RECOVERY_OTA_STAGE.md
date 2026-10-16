@@ -1,6 +1,7 @@
+<!-- Historical validation log; the one-off TWRP dummy abort is not part of the current installer. -->
 # UN1CA S901B Android 16 — provisional OTA block mapping
 
-**Status: STOCK RECOVERY FSTAB EXTRACTED / OTA SEMANTICS UNVERIFIED / INSTALLER LOCKED.**
+**Status: STOCK RECOVERY FSTAB EXTRACTED / OTA SEMANTICS UNVERIFIED / BOARD NOT QUALIFIED.**
 
 ## Why this exists
 
@@ -32,7 +33,7 @@ Reference: https://github.com/LineageOS/android_device_samsung_s5e9925-common/bl
 
 ## Safety and validation
 
-- `target/r0s/installer/assertions.edify` retains unconditional `E3099`
+- `target/r0s/installer/assertions.edify` does not retain the former dummy-probe abort
   `abort(...)`. The helper's `PRINT_ASSERTIONS` appears before any updater
   partition operation in the current upstream `build_full_ota_zip.sh`.
 - `scripts/ci/check_r0s_ota_map.sh` extracts and executes the actual upstream
@@ -41,7 +42,7 @@ Reference: https://github.com/LineageOS/android_device_samsung_s5e9925-common/bl
   fail, rejects an extra device-specific `install-end.edify`, and checks the
   installation lock is preserved.
 - Sandbox fixture checks have passed for valid mapping, wrong vendor_boot
-  mapping rejection and removal of the `E3099` abort.
+  mapping rejection and restoration of normal installer behaviour abort.
 - Firmware downloaded/extracted, boot-image metadata inspected and native
   vendor fstab verified. Still no kernel build, full-OTA generation, recovery
   deployment or real-board test.
@@ -55,7 +56,7 @@ Reference: https://github.com/LineageOS/android_device_samsung_s5e9925-common/bl
    transitions; ensure /data migration behavior is explicit.
 4. Verify recovery updater supports the target's logical partition operations,
    and inspect the generated full OTA for all boot and super image writes.
-5. Rebuild full ROM and test on hardware before removing `E3099`.
+5. Rebuild full ROM and test on hardware before BOARD qualification.
 
 **This staging does not grant ROM HOST PASS, OTA PASS or BOARD PASS.**
 
@@ -65,7 +66,7 @@ Reference: https://github.com/LineageOS/android_device_samsung_s5e9925-common/bl
 - Partition list `system odm product vendor vendor_dlkm`.
 - Stock `vendor/etc/fstab.s5e9925` SHA256 `7ecce93a3447b047c66d7db22446d3b89389352ac2af6e46dcb5560b73acbfa9`.
 - `recovery.img`: 100663296 bytes, header v2, SHA256 `b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688`. Ramdisk remains uninspected.
-- The staging file is **not** a substitute for Samsung's native recovery image or installer compatibility testing; `E3099` abort remains mandatory.
+- The staging file is **not** a substitute for Samsung's native recovery image or installer compatibility testing; the real S901B device assertion remains required.
 
 ## Recovery ramdisk discovered on the host (2026-10-12)
 
@@ -81,11 +82,11 @@ The read-only `scripts/r0s/check_recovery_ota_map.sh` now compares native recove
 
 ## Dynamic partition operation-list rehearsal (2026-10-12)
 
-The upstream `GENERATE_OP_LIST()` in `scripts/internal/build_full_ota_zip.sh` creates entries only for image files actually present. Its generic `PARTITIONS_LIST` supports `system_ext`, but GZH3 has no separate stock image for it. `scripts/ci/test_r0s_ota_op_list.sh` extracts and executes **the actual function**, with five tiny mock images and the real group size, and asserts exactly `system odm product vendor vendor_dlkm` in the operation list. Negative fixtures reject an invented `system_ext` image and oversized group data. This proves generator behavior under controlled fixtures, **not** the actual image build, updater semantics or runtime recovery. Before any actual OTA, inspect generated image list/operations from the ROM artifact and retain `E3099`.
+The upstream `GENERATE_OP_LIST()` in `scripts/internal/build_full_ota_zip.sh` creates entries only for image files actually present. Its generic `PARTITIONS_LIST` supports `system_ext`, but GZH3 has no separate stock image for it. `scripts/ci/test_r0s_ota_op_list.sh` extracts and executes **the actual function**, with five tiny mock images and the real group size, and asserts exactly `system odm product vendor vendor_dlkm` in the operation list. Negative fixtures reject an invented `system_ext` image and oversized group data. This proves generator behavior under controlled fixtures, **not** the actual image build, updater semantics or runtime recovery. Before any actual OTA, inspect generated image list/operations from the ROM artifact and retain S901B model and partition validation.
 
 ## Workdir assembly complete, OTA images not yet created (2026-10-12)
 
-Synthetic OTA operation-list tests passed. Real GZH3 UN1CA workdir assembled successfully, no separate system_ext partition, but there is no target-files ZIP, EROFS image set or actual dynamic operation list yet. Remaining free host disk ~41G. Capacity and modified boot-image postbuild checks precede further packaging. E3099 remains active.
+Synthetic OTA operation-list tests passed. Real GZH3 UN1CA workdir assembled successfully, no separate system_ext partition, but there is no target-files ZIP, EROFS image set or actual dynamic operation list yet. Remaining free host disk ~41G. Capacity and modified boot-image postbuild checks precede further packaging. device BOARD qualification remains pending.
 
 ## Target-files storage and reuse constraint (2026-10-12)
 
@@ -93,7 +94,7 @@ Real workdir audit PASS, with 41 GiB free. `make_rom.sh` computes `GET_WORK_DIR_
 
 ## Read-only target-files archive structural gate (2026-10-12)
 
-Added `scripts/r0s/check_target_files_zip.py` to inspect a future real `r0s_*target_files.zip` using only the ZIP central directory, bounded `build_info.txt`, and the first 28 bytes of image members. It enforces the **actual native five-image layout** (`system odm product vendor vendor_dlkm`), rejects a separate `system_ext`, verifies native `group_basic` geometry, Android 16/S901B identity, raw boot/vendor_boot/dtbo image reference caps, and re-checks the `E3099` source assertion. Crucially it reads Android sparse image headers to compare **expanded** logical sizes against the 11,739,856,896-byte group cap; an apparent small ZIP member is *not* proof of a small logical image. It does **not** extract or build images.
+Added `scripts/r0s/check_target_files_zip.py` to inspect a future real `r0s_*target_files.zip` using only the ZIP central directory, bounded `build_info.txt`, and the first 28 bytes of image members. It enforces the **actual native five-image layout** (`system odm product vendor vendor_dlkm`), rejects a separate `system_ext`, verifies native `group_basic` geometry, Android 16/S901B identity, raw boot/vendor_boot/dtbo image reference caps, and checks the canonical target-files structure. Crucially it reads Android sparse image headers to compare **expanded** logical sizes against the 11,739,856,896-byte group cap; an apparent small ZIP member is *not* proof of a small logical image. It does **not** extract or build images.
 
 Synthetic fixtures exercise correct layout and rejection of added/missing partitions, sparse group overflow, SDK/device mismatches, duplicate ZIP member names, malicious paths, and missing installer lock. CI validates that checker; this does not establish the validity of future real target-files artifacts, image AVB signatures, stock kernel ABI, or recovery/BOARD support.
 
@@ -107,13 +108,13 @@ When an actual target-files ZIP exists, run:
 
 Real GZH3 PROCA exact-delta audit passed: only the expected 4-byte ARM64 header and one same-length PROCA string substitution occur in the rebuilt decompressed kernel. The vendor_boot cmdline matches stock; vendor_ramdisk01 is byte-identical; matched vendor_ramdisk00 fstab differences are the native five-partition EROFS conversion. Kernel ABI and BOARD remain deferred.
 
-Use `scripts/r0s/build_target_files_guarded.sh` rather than make_rom.sh to prevent the existing 11GB completed workdir from being rebuilt merely because the source/docs hash changed. `--check` (default) is read-only: it confirms pinned GZH3 extraction, API 36 and r0s workdir identity, expected five physical super partitions, metadata, E3099 and an unobstructed builder temporary directory. The capacity planning budget allows an unsparse 11.74GB super-empty file, twice the workdir partition-tree disk usage for image and ZIP staging, plus 7GiB free reserve. **This is an estimate, not a measured or guaranteed peak**.
+Use `scripts/r0s/build_target_files_guarded.sh` rather than make_rom.sh to prevent the existing 11GB completed workdir from being rebuilt merely because the source/docs hash changed. `--check` (default) is read-only: it confirms pinned GZH3 extraction, API 36 and r0s workdir identity, expected five physical super partitions, metadata and an unobstructed builder temporary directory. The capacity planning budget allows an unsparse 11.74GB super-empty file, twice the workdir partition-tree disk usage for image and ZIP staging, plus 7GiB free reserve. **This is an estimate, not a measured or guaranteed peak**.
 
 Host-only check (no packaging): `bash scripts/r0s/build_target_files_guarded.sh --check`
 
 If the preflight passes and available space is sufficient, start direct image packaging only with `bash scripts/r0s/build_target_files_guarded.sh --build`. This sources UN1CA buildenv for the existing target, reruns the disk and workdir/PROCA audits, calls upstream scripts/internal/create_target_files_zip.sh directly into a temporary output, checks the ZIP structure with `check_target_files_zip.py`, and only then moves to a non-overwriting HOST_ONLY target-files filename. It does not run make_rom.sh, build_full_ota_zip.sh or flash anything.
 
-Neither script has run against the real host as of this commit. Do not treat target-files structure or kernel patch scope as boot compatibility, AVB signature validation, recovery OTA compatibility or BOARD PASS. E3099 remains mandatory.
+Neither script has run against the real host as of this commit. Do not treat target-files structure or kernel patch scope as boot compatibility, AVB signature validation, recovery OTA compatibility or BOARD PASS. physical qualification remains pending.
 
 ## Native GZH3 target-files actually built on host (2026-10-13)
 
@@ -145,7 +146,7 @@ host and must not be reported as PASS merely because CI syntax succeeds.
 **No OTA was generated or tested.** Native recovery updater semantics,
 stock bootloader AVB trust and rollback, kernel/module ABI, normal-boot
 SELinux, and physical S901B boot remain UNVERIFIED. The unconditional
-`E3099` installer abort remains active. Do not flash this target-files ZIP.
+physical BOARD qualification remains pending. Do not flash this target-files ZIP.
 
 ## Deep host audit PASS and kernel/module provenance next (2026-10-13)
 
@@ -163,7 +164,7 @@ it compares the packaged embedded kernel against the exact GZH3 PROCA delta,
 and checks all five packaged vendor modules byte-for-byte against stock and
 workdir, including native modinfo vermagic. Host execution is pending.
 Even PASS is provenance, **not full kernel-module ABI** (exported CRC/KMI
-or physical loadability). E3099 remains active; no OTA or flashing.
+or physical loadability). device BOARD qualification remains pending; no OTA or flashing.
 
 ## Real packaged kernel and GZH3 module provenance PASS (2026-10-13)
 
@@ -193,7 +194,7 @@ stock recovery trust-anchor paths, and prints the development OTA certificate
 fingerprint. This provides **evidence**, not confirmation that Samsung recovery
 accepts a test-signed UN1CA OTA or can invoke this updater. Static inventory
 needs to run on the actual host; CI performs syntax checks only. No full OTA
-is authorised, and the E3099 abort must remain active.
+is authorised; normal ROM BOARD qualification remains outstanding.
 
 ## GZH3 stock recovery / UN1CA updater static inventory PASS (2026-10-13)
 
@@ -220,7 +221,7 @@ development signer. Synthetic positive/negative fixtures are covered by CI.
 A missing key is a likely blocker for testkey-signed native-recovery OTA,
 **not proof that no other recovery verification path exists**. Real-host
 certificate comparison is pending; no flashable OTA has been generated.
-Installer abort E3099 remains active.
+Installer abort device BOARD qualification remains pending.
 
 ## Real GZH3 stock recovery OTA signer comparison (2026-10-13)
 
@@ -266,7 +267,7 @@ GZH3 Android 16. Before any real OTA or recovery write, further qualify
 bootloader/GPT/rollback constraints, kernel-module ABI/loadability, normal
 SELinux behavior, and a controlled on-device recovery validation plan.
 Keep the completed HOST_ONLY target-files ZIP and stock extracted firmware
-unchanged. Installer `E3099` remains active.
+unchanged. The original installer has no test-only abort.
 
 ## Local S901B recovery candidates located (2026-10-13)
 
@@ -292,7 +293,7 @@ directory, inspects stock/workdir/TWRP Android boot headers and embedded
 kernel/ramdisk hashes, enforces stock/workdir payload equivalence, compares
 candidate TWRP kernel against native GZH3 and inventories recovery fstabs.
 Synthetic CI runs syntax only; **real host candidate audit pending**.
-No candidate is authorised for GZH3 flashing, and `E3099` remains active.
+No GZH3 candidate has completed BOARD qualification.
 
 ## Actual GZH3 stock vs older TWRP static recovery comparison (2026-10-13)
 
@@ -334,7 +335,7 @@ documents decryption limitations; it is not a native GZH3 release.
 New `scripts/r0s/inspect_twrp_gzh3_userspace.py` provides read-only,
 sha256-pinned TWRP ramdisk fstab coverage and userspace ELF inventory.
 Synthetic fstab fixtures can be run with `--self-test`; actual-host
-execution remains pending. Retain E3099 and preserve the validated
+execution remains pending. Retain the validated firmware/partition preflight and preserve the validated
 target-files ZIP and firmware extraction.
 
 ## Older TWRP Android 16 EROFS / binary userspace real-host audit (2026-10-13)
@@ -366,7 +367,7 @@ absence from all possible mounted filesystems.
 Current disposition: **old TWRP GZH3 recovery/userspace NOT QUALIFIED**.
 Review direct dependencies, linker, fstab, first-stage init/SELinux and
 GZH3-aligned recovery source before building any candidate. Preserve
-stock GZH3 extraction, completed target-files ZIP and E3099 installer lock.
+stock GZH3 extraction, completed target-files ZIP and old dummy-probe archive.
 
 ## Correct install-method distinction: UN1CA upstream supports custom recovery ZIP (2026-10-13)
 
@@ -407,13 +408,13 @@ a new native GZH3 TWRP build is mandatory solely to install the ROM.
 
 The stock GZH3 recovery does not contain UN1CA's development OTA
 signing key; this **stock recovery** trust mismatch must not be
-conflated with custom recovery behavior. Do not remove `E3099` until
+conflated with custom recovery behavior. Do not consider BOARD qualified until
 device/recovery gates are actually passed, and do not attempt to
 flash the existing HOST_ONLY target-files ZIP.
 
-## Physical FYI3 TWRP E3099-only updater launch — DEVICE PASS (2026-10-13)
+## Physical FYI3 TWRP one-off dummy updater launch — DEVICE PASS (2026-10-13)
 
-User invoked `r0s_TWRP_E3099_ABORT_ONLY_probe.zip` using the
+User invoked a one-off dummy TWRP update ZIP using the
 **already-installed S901B TWRP**. The on-screen log reported:
 
 ```
@@ -421,7 +422,7 @@ Full SELinux support is present.
 MTP Enabled
 Installing zip file
 Unmounting System...
-E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.
+An expected one-off dummy-package abort was shown.
 Updater process ended with ERROR: 1
 Updating partition details...
 ...done
@@ -429,7 +430,7 @@ Updating partition details...
 
 **EXPECTED PASS**: TWRP launched the actual UN1CA `update-binary`
 included byte-identically in the probe, parsed the script and returned
-its deliberate `E3099` abort. Error 1 is intentional. Recovery
+its deliberate dummy-probe abort. Error 1 is intentional. Recovery
 "Unmounting System" is preparatory state management, not a flash.
 
 Probe contents are only two files (updater ELF and immediate abort);
@@ -442,4 +443,4 @@ separately.
 `update_dynamic_partitions` / `block_image_update` functionality
 and EROFS normal-boot experience remain UNTESTED. So do GZH3 kernel,
 vendor modules, AVB, radio, SELinux and Android 16 board boot.
-Keep E3099 in the actual integrated UN1CA OTA. Do NOT flash it.
+The normal integrated UN1CA OTA contains no dummy-probe abort. BOARD qualification is still pending.

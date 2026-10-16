@@ -9,7 +9,7 @@ Stage: RESEARCH / NO IMPLEMENTATION / NO FLASH.
 - Source-level KernelSU Next implementation can be evaluated only against an exact A16 kernel source release; verify symvers, CRCs, compiler/toolchain and module loadability before any boot image integration.
 - Samsung Open Source Release Center is the official kernel-source discovery location, but the exact matching S901B A16 source archive remains UNVERIFIED.
 - `lineage-23.2` in ExtremeXT's Exynos kernel repository is a *potential reference*, not a proven One UI 8 stock-kernel replacement.
-- Remove the unconditional `target/r0s/installer/assertions.edify` abort only when the ROM, kernel and board gates are all passed.
+- The earlier dummy-probe abort has been removed from the installer. Kernel and ROM runtime still require BOARD qualification.
 
 Upstream documentation:
 - https://doc.samsungmobile.com/SM-S901B/021722220304/roh.html
