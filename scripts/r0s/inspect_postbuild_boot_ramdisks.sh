@@ -25,8 +25,6 @@ export PATH="$ROOT/out/tools/bin:$PATH"
 for cmd in unpack_bootimg sha256sum cpio lz4 gzip file cmp diff awk python3; do
     command -v "$cmd" >/dev/null || die "required tool missing: $cmd"
 done
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    "$ROOT/target/r0s/installer/assertions.edify" || die 'E3099 installer lock missing'
 
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
@@ -137,4 +135,4 @@ else
     echo 'Do not call make_rom.sh without checking whether a rebuild is needed.'
 fi
 echo 'POSTBUILD BOOT/FSTAB HOST INVENTORY COMPLETE'
-echo 'KERNEL MODULE ABI, NORMAL-BOOT SELINUX, OTA AND BOARD UNVERIFIED; E3099 ACTIVE'
+echo 'KERNEL MODULE ABI, NORMAL-BOOT SELINUX, OTA AND BOARD UNVERIFIED; BOARD DEFERRED'

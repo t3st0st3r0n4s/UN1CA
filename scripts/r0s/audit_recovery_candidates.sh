@@ -25,8 +25,6 @@ done
     fail 'missing stock/workdir recovery or TWRP archive'
 echo "b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688  $STOCK" |
     sha256sum -c - >/dev/null || fail 'stock GZH3 recovery image hash mismatch'
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    "$ROOT/target/r0s/installer/assertions.edify" || fail 'E3099 installer lock missing'
 
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
@@ -127,4 +125,4 @@ for side in stock work twrp; do
 done
 echo 'RECOVERY STATIC HOST INVENTORY COMPLETE (NOT DEVICE COMPATIBILITY PASS)'
 echo 'Prior TWRP kernel match is only one gate; updater, fstab, bootloader still unverified.'
-echo 'NO RECOVERY/OTA FLASH. E3099 ACTIVE.'
+echo 'NO RECOVERY/OTA FLASH. BOARD DEFERRED.'

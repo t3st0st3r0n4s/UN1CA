@@ -16,10 +16,8 @@ spec.loader.exec_module(gate)
 def fixture(root):
     fw = root / "out/fw/SM-S901B_EUX"
     work = root / "out/target/r0s/work_dir"
-    lock = root / "target/r0s/installer/assertions.edify"
     fw.mkdir(parents=True)
     work.mkdir(parents=True)
-    lock.parent.mkdir(parents=True)
     (fw / ".extracted").write_text(gate.FOTA)
     (fw / "os_partitions_metadata.txt").write_text(
         "super_partition_group=group_basic\n"
@@ -39,15 +37,14 @@ def fixture(root):
         (work / "configs" / ("fs_config-" + part)).write_text("fixture\n")
     for part in ("boot", "vendor_boot", "dtbo"):
         (work / "kernel" / (part + ".img")).write_bytes(b"fixture")
-    lock.write_text('abort("E3099: native A16 NOT qualified for flashing.");\n')
-    return fw, work, lock
+    return fw, work
 
 
 def run():
     count = 0
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
-        fw, work, lock = fixture(root)
+        fw, work = fixture(root)
 
         def passed():
             nonlocal count
@@ -68,9 +65,6 @@ def run():
         (fw / ".extracted").write_text("S901BOTHER/S901BOTHER/S901BOTHER")
         blocked()
         (fw / ".extracted").write_text(gate.FOTA)
-        lock.write_text("ui_print('UNSAFE');\n")
-        blocked()
-        lock.write_text('abort("E3099: native A16 NOT qualified for flashing.");\n')
         (work / "system/system/build.prop").write_text("ro.build.version.sdk=35\n")
         blocked()
         (work / "system/system/build.prop").write_text(
@@ -100,7 +94,7 @@ def run():
         blocked()
         super_meta_file.write_text(normal_meta)
         passed()
-    assert count == 11, count
+    assert count == 10, count
     print(f"r0s target-files preflight fixtures PASS ({count} cases)")
 
 

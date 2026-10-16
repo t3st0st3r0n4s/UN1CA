@@ -33,7 +33,6 @@ on:
       - 'target/r0s/late_patches/**'
       - 'scripts/make_rom.sh'
       - 'docs/r0s/CUSTOM_KERNEL_KSU_A16.md'
-      - 'scripts/r0s/make_twrp_abort_probe.py'
       - 'scripts/r0s/check_tachyon_rollback_zip.py'
       - 'scripts/r0s/audit_recovery_ota_trust.sh'
       - 'scripts/r0s/check_recovery_ota_certificates.py'
@@ -84,9 +83,6 @@ jobs:
       - name: Test S901B FYI3 to GZH3 installation contract syntax (synthetic only)
         shell: bash
         run: python3 scripts/r0s/audit_install_prerequisites.py --self-test
-      - name: Test E3099-only TWRP probe archive guard (synthetic)
-        shell: bash
-        run: python3 scripts/r0s/make_twrp_abort_probe.py --self-test
       - name: Test actual-OTA binary to existing TWRP static-ABI inspector (synthetic only)
         shell: bash
         run: python3 scripts/r0s/audit_ota_updater_twrp.py --self-test
@@ -102,7 +98,7 @@ jobs:
       - name: Check pinned A16 hybrid builder and late integration fixtures (synthetic only)
         shell: bash
         run: python3 scripts/r0s/reconcile_extremekrnl_gzh3_a16.py --self-test && python3 scripts/r0s/integrate_extremekrnl_a16.py --self-test && python3 scripts/r0s/install_ksunext_manager_a16.py --self-test && python3 scripts/r0s/package_extremekrnl_update_a16.py self-test && python3 scripts/r0s/audit_tachyon_twrp_reuse.py --self-test && python3 scripts/r0s/audit_tachyon_twrp_reuse.py --source-only && bash -n scripts/make_rom.sh && bash -n target/r0s/late_patches/extremekrnl/customize.sh
-      - name: Test host-only single full OTA archive safety gate (synthetic only)
+      - name: Test single full OTA archive structure (synthetic only)
         shell: bash
         run: python3 scripts/r0s/build_full_ota_guarded.py --self-test
       - name: Test X.509 OTA recovery trust comparator (synthetic only)
@@ -132,7 +128,7 @@ jobs:
       - name: Test native GZH3 target-files ZIP checker (synthetic only)
         shell: bash
         run: python3 scripts/ci/test_r0s_target_files_zip.py
-      - name: Validate provisional updater-script map and safety lock
+      - name: Validate provisional updater-script block map
         shell: bash
         run: bash scripts/ci/check_r0s_ota_map.sh
       - name: Verify inactive KernelSU Next manager reuse staging

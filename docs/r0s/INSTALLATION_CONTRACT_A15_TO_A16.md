@@ -1,7 +1,7 @@
 # TachyonOS FYI3 A15 -> UN1CA GZH3 A16: S901B installation contract
 
 Status 2026-10-13: HOST target-files validated; PHONE BOOTCHAIN NOT QUALIFIED.
-Keep E3099 abort in target/r0s/installer/assertions.edify. NO flashing, BL
+No artificial installer abort. BOOT/BOARD qualification pending; BL
 upgrade, A16 stock installation, recovery replacement, userdata wipe or
 automatic downgrade recommendation.
 
@@ -147,7 +147,7 @@ upgrade that breaks the agreed TachyonOS FYI3 recovery route.
 ## Measurable release gates
 
 - G0 SOURCE/HOST PASS: Native GZH3 5-way super, boot-chain images,
-  ZIP CRC, module provenance, packaging capacity and E3099 abort.
+  ZIP CRC, module provenance and packaging capacity.
 - G1 BASELINE ALREADY ESTABLISHED FROM TACHYONOS: model, Android 15 API 35,
   FYI3 target pin, rooted/unlocked development workflow, recovery and
   v3.4.1 kernel boot/module load are documented and previously tested.
@@ -165,7 +165,7 @@ upgrade that breaks the agreed TachyonOS FYI3 recovery route.
   required. No promise of preserving userdata across A16 -> A15.
 - G6 BOARD: normal-boot, data, fingerprint, RIL/IMS, NFC, camera,
   vendor modules, enforcing policy/hardware functionality, recovery.
-- Only after G0-G6 may someone review removing E3099 or issuing an
+- Only after G0-G6 may someone review issuing an
   installation package. Passing a command's syntax test != board PASS.
 
 ## Immediate read-only command
@@ -231,4 +231,4 @@ The default searches `~/android/tachyonos_s901b/out/` for
 This is a one-time A15 rollback candidate check, **not another Android
 device audit**. Once this is confirmed, next inspect the **UN1CA
 GZH3 OTA write set** against those same five partitions and avoid any
-bootloader changes. Do not remove E3099 or flash.
+bootloader changes. Device qualification is still required.

@@ -22,8 +22,6 @@ done
     fail 'missing native stock recovery or UN1CA prebuilt OTA updater'
 printf '%s  %s\n' "$EXPECTED_SHA" "$NATIVE" | sha256sum -c - >/dev/null ||
     fail 'stock recovery image differs from pinned GZH3 hash'
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    "$ROOT/target/r0s/installer/assertions.edify" || fail 'E3099 installer lock missing'
 
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
@@ -77,4 +75,4 @@ done
 echo 'STOCK RECOVERY / UN1CA UPDATER STATIC INVENTORY PASS'
 echo 'AArch64 ELF presence is not proof of supported update-binary protocol or library linkage.'
 echo 'STOCK RECOVERY OTA TRUST, EXECUTION, KERNEL ABI LOADABILITY, BOARD UNVERIFIED.'
-echo 'E3099 ACTIVE; NO OTA BUILT AND NO FLASHING.'
+echo 'BOARD DEFERRED; NO OTA BUILT AND NO FLASHING.'

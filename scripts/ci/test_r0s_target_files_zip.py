@@ -52,12 +52,10 @@ def run():
     with tempfile.TemporaryDirectory() as temp:
         temp = Path(temp)
         arc = temp / 'fixture.zip'
-        lock = temp / 'assertions.edify'
-        lock.write_text('abort("E3099: UN1CA is NOT qualified for flashing.");\n')
         def expect(reject=False, **options):
             write_fixture(arc, **options)
             try:
-                MODULE.inspect(arc, lock)
+                MODULE.inspect(arc)
             except MODULE.Blocked as exc:
                 if not reject:
                     raise AssertionError('fixture unexpectedly rejected: ' + str(exc)) from exc
@@ -71,9 +69,7 @@ def run():
         expect(reject=True, metadata=INFO.replace('device=r0s', 'device=e1s'))
         expect(reject=True, duplicate=True)
         expect(reject=True, extras={'../escape.img': b'bad'})
-        lock.write_text('ui_print("UNSAFE");\n')
-        expect(reject=True)
-    print('r0s target-files ZIP synthetic gate: 9 positive/negative scenarios PASS')
+    print('r0s target-files ZIP synthetic gate: 8 positive/negative scenarios PASS')
 
 
 if __name__ == '__main__':

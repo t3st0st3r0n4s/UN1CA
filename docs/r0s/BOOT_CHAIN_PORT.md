@@ -37,7 +37,7 @@ The synthetic gate `scripts/ci/test_r0s_boot_chain.sh` tests acceptable mock met
 - Actual native A16 recovery fstab and UN1CA full-OTA installer integration.
 - Root support (KernelSU Next), enforcing SELinux and physical S901B hardware tests.
 
-**Installer remains intentionally locked with E3099.**
+**The normal installer has no artificial abort; BOARD qualification remains pending.**
 
 ### External references
 
@@ -91,7 +91,7 @@ Stock and work `vendor_boot` both have v4 headers and exactly the same vendor cm
 
 UN1CA's active source at `unica/patches/proca/customize.sh` modifies decompressed ARM64 kernel bytes at offset 40 (if not zero/prepatched) and replaces one exact PROCA string literal with a same-length literal. The new `scripts/r0s/check_proca_kernel_delta.py` implements only those two transformations and compares the **entire decompressed** stock and rebuilt kernel byte-for-byte against the expected result. Any unrelated change, unexpected length or ambiguous duplicate literal blocks. The existing postbuild ramdisk inspection now invokes this exact-delta check. Synthetic tests exercise raw/gzip positive examples and corruption, patch omission and other negative cases.
 
-The **real host exact-delta rerun remains pending**. Passing the new byte-level gate would validate patch scope only, not kernel module ABI, runtime SELinux, AVB, bootability or BOARD. Keep installer `E3099` active.
+The **real host exact-delta rerun remains pending**. Passing the new byte-level gate would validate patch scope only, not kernel module ABI, runtime SELinux, AVB, bootability or BOARD. The installer no longer carries the former test-only abort.
 
 ## CRITICAL: A15 FYI3 -> GZH3 A16 prerequisite / bootloader rollback gate (2026-10-13)
 
@@ -148,7 +148,7 @@ preserving bootloader unlock.
   writing any permanent bootloader component. If not achievable,
   this ROM cannot be approved for physical install as designed.
 - Independently qualify custom recovery's actual block OTA install
-  protocol, AVB and five-partition layout; E3099 unconditional
+  protocol, AVB and five-partition layout; the original trial-only
   installer abort stays enabled.
 
 **Status: GZH3-ON-RETAINED-I BOOT/AVB COMPATIBILITY = HARD BLOCKER.**
@@ -188,7 +188,7 @@ Require an independently usable path back to the existing FYI3 TachyonOS
 ROM: matched logical partitions/boot chain, relevant vbmeta and the working
 TWRP, with saved backups. Data may need format/restore; **reversible ROM
 firmware is not the same as guaranteed preservation of Android userdata**.
-E3099 remains until the future A16 install and A15 return path are proven.
+The A16 install and A15 return path require physical qualification.
 
 ## Original TWRP-provided vbmeta flags — host evidence (2026-10-13)
 
@@ -225,7 +225,7 @@ UN1CA full ZIP intentionally omits vbmeta and all BL/CP/recovery
 partitions. Do not flash or replace any of them just to adopt A16.
 AOSP's vbmeta flags do **not** prove Samsung secure-boot TrustZone /
 antirollback compatibility or that GZH3 normal boot works with the
-existing FYI3 bootloader. The finished E3099-locked A16 package
+existing FYI3 bootloader. The historical non-installing A16 package
 has development-key AVB footers verified on host; that does not
 establish device boot acceptance.
 

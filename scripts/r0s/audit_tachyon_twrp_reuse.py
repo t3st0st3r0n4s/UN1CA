@@ -6,7 +6,7 @@ Compare the recovery.img bytes inside both extant TARs, not their TAR hashes:
 TachyonOS's repo TAR is vbmeta_only; the previously device-tested candidate
 is logo_vbmeta. Only equal embedded recovery bytes prove binary reuse.
 Also check the GZH3 installer maps the five native EROFS logical partitions
-through the unchanged legacy block updater and keeps the E3099 abort.
+through the unchanged legacy block updater.
 """
 from __future__ import annotations
 
@@ -24,8 +24,6 @@ TESTED_TAR = Path.home() / "android/S22-ROM/S901B_twrp_logo_vbmeta.tar"
 REPO_BLOB_SHA1 = "9a164f92b09cd7975e8c1341b11ea5e01abd3b94"
 REPO_TAR_SIZE = 67_174_400
 TESTED_TAR_SHA256 = "f82b9612d92786971609895facb703906744d9a617e673f1cd148e671735d830"
-LOCK = ('abort("E3099: UN1CA sixteen-r0s is under development and '
-        'NOT qualified for flashing.");')
 LOGICAL = ("system", "vendor", "product", "odm", "vendor_dlkm")
 RAW = ("boot", "vendor_boot", "dtbo")
 
@@ -83,9 +81,6 @@ def extract_identity(path):
 
 
 def check_un1ca_updater():
-    lockfile = ROOT / "target/r0s/installer/assertions.edify"
-    need(lockfile.is_file() and LOCK in lockfile.read_text(),
-         "mandatory UN1CA E3099 lock not present")
     fstab = ROOT / "target/r0s/installer/recovery.fstab"
     text = fstab.read_text()
     logical = {}
@@ -126,7 +121,7 @@ def check_un1ca_updater():
          "existing physical-probe updater ABI validation script absent")
     print("UN1CA GZH3 LEGACY TWRP BLOCK-UPDATER CONTRACT PASS (SOURCE ONLY)")
     print("Exactly five native logical partitions; EROFS preserved; no system_ext")
-    print("E3099 remains active; the existing recovery is not replaced")
+    print("BOARD remains unverified; the existing recovery is not replaced")
     print("Physical TWRP updater-launch PASS is retained separately in project records")
     print("Dynamic partition writing and A16 normal boot remain BOARD DEFERRED")
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 UN1CA contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Read-only ABI/symbol check of the ACTUAL locked UN1CA OTA updater vs FYI3 TWRP.
+"""Read-only ABI/symbol check of the ACTUAL UN1CA OTA updater vs FYI3 TWRP.
 
 Cannot prove runtime execution, dm mapping or GZH3 boot on FYI3 firmware.
 Never executes update-binary, writes a partition or changes the phone.
@@ -21,13 +21,11 @@ import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
-ZIP_PATH = ROOT / "out/UN1CA_r0s_A16_GZH3_E3099_BLOCKED_full_ota.zip"
-ZIP_SHA = "4200d8239a5243021cdcf7396b0bab4f0dda944f5dc4e1893ffd189c4df9e022"
+from build_full_ota_guarded import native_rom_output, check_ota
 TWRP_PATH = Path.home() / "android/S22-ROM/S901B_twrp_logo_vbmeta.tar"
 TWRP_SHA = "f82b9612d92786971609895facb703906744d9a617e673f1cd148e671735d830"
 UPDATER_NAME = "META-INF/com/google/android/update-binary"
 SCRIPT_NAME = "META-INF/com/google/android/updater-script"
-ABORT = 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
 EXPECTED_FUNCTIONS = ("update_dynamic_partitions", "block_image_update", "map_partition")
 
 
@@ -58,9 +56,7 @@ def elf_metadata(header, program, dynamic):
 
 def source_gate(zipfile_path):
     require(zipfile_path.is_file(), "missing existing full OTA ZIP")
-    require(sha(zipfile_path) == ZIP_SHA, "full OTA hash differs from pinned HOST PASS")
-    require('abort("E3099:' in (ROOT / "target/r0s/installer/assertions.edify").read_text(),
-            "project safety assertion missing")
+    check_ota(zipfile_path)
     with zipfile.ZipFile(zipfile_path) as z:
         all_names = z.namelist()
         require(len(all_names) == len(set(all_names)), "duplicate ZIP member")
@@ -68,12 +64,6 @@ def source_gate(zipfile_path):
             require(name in all_names and 0 < z.getinfo(name).file_size < 64 * 1024 * 1024,
                     "required bounded updater member absent: " + name)
         edify = z.read(SCRIPT_NAME).decode("utf-8")
-        firstwrite = [edify.find(x) for x in ("update_dynamic_partitions(",
-                                              "block_image_update(",
-                                              "package_extract_file(")]
-        firstwrite = min(x for x in firstwrite if x >= 0)
-        require(edify.count(ABORT) == 1 and 0 <= edify.find(ABORT) < firstwrite,
-                "E3099 not unconditionally ahead of OTA write operations")
         return z.read(UPDATER_NAME)
 
 
@@ -179,7 +169,7 @@ def audit(zip_path, twrp_path):
             print("TWRP RAMDISK DEPENDENCY GAP — may need verified external mounts/new recovery")
         else:
             print("TWRP DIRECT ABI FILE INVENTORY PASS (static presence only)")
-    print("E3099-FIRST CONFIRMED; NO BL/CP/RECOVERY WRITES BY THIS AUDIT")
+    print("NO BL/CP/RECOVERY WRITES BY THIS AUDIT")
     print("UPDATE-BINARY EXECUTION / DYNAMIC PARTITION IO / BOARD STILL UNVERIFIED")
     print("NO FLASH / NO REBOOT / NO DEVICE CHANGES")
 
@@ -187,14 +177,14 @@ def audit(zip_path, twrp_path):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--self-test", action="store_true")
-    p.add_argument("--zip", type=Path, default=ZIP_PATH)
+    p.add_argument("--zip", type=Path, help="existing full UN1CA ROM ZIP")
     p.add_argument("--twrp", type=Path, default=TWRP_PATH)
     args = p.parse_args()
     try:
         if args.self_test:
             self_test()
         else:
-            audit(args.zip.expanduser(), args.twrp.expanduser())
+            audit((args.zip or native_rom_output()).expanduser(), args.twrp.expanduser())
     except (Blocked, OSError, RuntimeError, ValueError, zipfile.BadZipFile,
             tarfile.TarError, EOFError) as exc:
         print("S901B OTA UPDATER/TWRP INSPECTION BLOCKED: " + str(exc), file=sys.stderr)

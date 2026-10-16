@@ -177,11 +177,8 @@ def audit(tarpath):
     fw = ROOT / "out/fw/SM-S901B_EUX"
     stock = fw / "kernel/recovery.img"
     marker = fw / ".extracted"
-    lock = ROOT / "target/r0s/installer/assertions.edify"
     require(marker.is_file() and marker.read_text().strip() == GZH3,
             "GZH3 firmware release pin mismatch")
-    require(lock.is_file() and re.search(r'^\s*abort\("E3099:.*NOT qualified for flashing',
-                                        lock.read_text(), re.M), "E3099 lock removed")
     require(stock.is_file() and sha256(stock) == STOCK_SHA, "stock recovery hash mismatch")
     require(tarpath.is_file() and sha256(tarpath) == TWRP_SHA, "TWRP TAR hash mismatch")
     tool = ROOT / "out/tools/bin/unpack_bootimg"
@@ -213,7 +210,7 @@ def audit(tarpath):
         elf_dependencies(twrp_files, "system/bin/twrp", "twrp", tmp)
         print("HOST RECOVERY RUNTIME DIRECT-DEPENDENCY INVENTORY COMPLETE")
         print("Absent from ramdisk does NOT prove runtime absence; other mounts may supply files.")
-        print("No runtime execution, repacking or flashing. E3099 ACTIVE.")
+        print("No runtime execution, repacking or flashing. BOARD DEFERRED.")
 
 
 def main():

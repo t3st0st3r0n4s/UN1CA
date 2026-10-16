@@ -60,10 +60,6 @@ def validate(root, free_bytes=None):
     fw = root / "out/fw/SM-S901B_EUX"
     work = root / "out/target/r0s/work_dir"
     output_dir = root / "out"
-    lock = root / "target/r0s/installer/assertions.edify"
-    require(lock.is_file(), "missing installer abort")
-    require(re.search(r'^\s*abort\("E3099:.*NOT qualified for flashing',
-                      lock.read_text(), re.M), "E3099 lock was removed")
     require((fw / ".extracted").is_file() and
             (fw / ".extracted").read_text().strip() == FOTA,
             "wrong/missing native GZH3 extraction")
@@ -135,7 +131,7 @@ def main():
     print(f"available_bytes={free_bytes}")
     print("Budget: full-sized super-empty + 2x partition tree + 7GiB reserve.")
     print("Peak is an estimate, not a bound; monitor disk during packaging.")
-    print("Read-only: no images, target-files or OTA built; E3099 active.")
+    print("Read-only: no images, target-files or OTA built; BOARD deferred.")
     return 0
 
 

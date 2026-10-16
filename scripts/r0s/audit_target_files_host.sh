@@ -28,7 +28,7 @@ ACTUAL="$(sha256sum "$ZIP" | awk '{print $1}')"
 [[ "$ACTUAL" == "$EXPECTED" ]] || die "archive SHA-256 differs from pinned host build"
 printf 'archive_sha256=%s\n' "$ACTUAL"
 
-echo '===== NATIVE GZH3 STRUCTURE / E3099 ====='
+echo '===== NATIVE GZH3 STRUCTURE ====='
 python3 "$ROOT/scripts/r0s/check_target_files_zip.py" "$ZIP" || die "target-files structural gate failed"
 
 echo '===== FULL ZIP CRC (STREAMING, NO DISK EXTRACTION) ====='
@@ -70,4 +70,4 @@ cat "$TMP/lpdump.txt"
 
 echo 'HOST-ONLY TARGET-FILES DEEP AUDIT PASS'
 echo 'AVB verified with project DEVELOPMENT TEST KEY ONLY; not stock trust/rollback qualification.'
-echo 'RECOVERY OTA, MODULE ABI, NORMAL-BOOT SELINUX AND BOARD remain UNVERIFIED; E3099 ACTIVE.'
+echo 'RECOVERY OTA, MODULE ABI, NORMAL-BOOT SELINUX AND BOARD remain UNVERIFIED; BOARD DEFERRED.'

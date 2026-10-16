@@ -36,7 +36,7 @@ Scope: source review ONLY; no firmware extraction, host compilation or hardware 
 A provisional LineageOS Exynos 2200-based *updater block locator* now exists
 at `target/r0s/installer/recovery.fstab`. This is not a native Samsung A16
 recovery fstab and does not qualify recovery or flashing. Do not copy the
-Exynos 2100 fstab. The unconditional `E3099` installer abort stays enforced.
+Exynos 2100 fstab. The normal installer has no test-only abort; BOARD qualification remains pending.
 The source-level mapping test is `scripts/ci/check_r0s_ota_map.sh`;
 native A16 recovery/OTA compatibility is still a production blocker.
 

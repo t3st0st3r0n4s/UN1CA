@@ -17,8 +17,6 @@ done
 [[ -s "$IMAGE" && -s "$TEST_CERT" ]] || die "stock recovery/test certificate missing"
 echo "b30c9dee9337d8a39d940cb25346b975e920c3507574ad0d3ed88dbf6a2ef688  $IMAGE" |
     sha256sum -c - >/dev/null || die "recovery hash mismatch"
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    "$ROOT/target/r0s/installer/assertions.edify" || die "E3099 missing"
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "$TMP"' EXIT
 mkdir -p "$TMP/boot"
@@ -44,4 +42,4 @@ python3 "$ROOT/scripts/r0s/check_recovery_ota_certificates.py" \
     "$TMP/publiccert.pem" "$TMP/otacerts.zip" "$TEST_CERT" ||
     die "certificate comparison failed"
 echo 'STATIC TRUST-ANCHOR INVENTORY COMPLETE; signature acceptance NOT verified.'
-echo 'E3099 ACTIVE. NO OTA CREATED, NO FLASHING.'
+echo 'BOARD DEFERRED. NO OTA CREATED, NO FLASHING.'

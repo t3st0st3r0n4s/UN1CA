@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Isolated Android 16 r0s ExtremeKRNL + built-in KernelSU Next candidate.
-# No ROM modifications, no flashing, no device access, no E3099 removal.
+# No ROM modifications, no flashing, no device access, no ROM installation.
 set -Eeuo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SRC="$ROOT/out/kernel_tmp-exynos2200"
@@ -23,8 +23,6 @@ if [[ "$MODE" == --self-test ]]; then
   echo 'A16 ExtremeKRNL/latest-stable KernelSU policy syntax fixtures PASS'
   exit 0
 fi
-grep -Fq 'abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");' \
-  "$ROOT/target/r0s/installer/assertions.edify" || die 'E3099 missing'
 [[ -f "$ROOT/out/fw/SM-S901B_EUX/.extracted" ]] || die 'GZH3 extraction absent'
 [[ "$(cat "$ROOT/out/fw/SM-S901B_EUX/.extracted")" == 'S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3' ]] || die 'wrong firmware'
 for cmd in git make python3 cpio lz4 zip depmod modinfo sha256sum awk find stat; do
@@ -120,4 +118,4 @@ done
 printf 'source=%s\nksunext=%s\nbuild_only=true\nrom_integrated=false\nboard_pass=false\n' \
   "$KERNEL_PIN" "$KSU_PIN" > "$ART/.r0s_a16_kernel_host_pass"
 echo 'A16 EXTREMEKRNL/KSU NEXT BUILD HOST PASS — NOT ROM INTEGRATED'
-echo 'Existing E3099-locked ROM and FYI3 bootloader unchanged.'
+echo 'Existing ROM workdir and FYI3 bootloader unchanged.'

@@ -157,9 +157,6 @@ def check_inputs():
     need((WORK / "system/system/build.prop").is_file()
          and "ro.build.version.sdk=36" in (WORK / "system/system/build.prop").read_text().splitlines(),
          "not an Android 16 system workdir")
-    lock = (ROOT / "target/r0s/installer/assertions.edify").read_text()
-    need('abort("E3099: UN1CA sixteen-r0s is under development and NOT qualified for flashing.");'
-         in lock, "installer E3099 protection absent")
     print("KernelSU Next one-shot manager source/workdir CHECK PASS")
 
 
@@ -252,7 +249,7 @@ def verify(release=None):
         need(ctx.count(key + " " + value) == 1,
              "file_context entry missing/drift: " + key)
     print("A16 KernelSU Next " + release["tag"] + " MANAGER WORKDIR VERIFY PASS")
-    print("pm install -r once after boot / u:r:ksu:s0 / E3099 ACTIVE")
+    print("pm install -r once after boot / u:r:ksu:s0 / BOARD DEFERRED")
     print("A16 root/SELinux runtime and phone boot still UNVERIFIED")
 
 

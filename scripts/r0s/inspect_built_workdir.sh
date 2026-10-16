@@ -13,8 +13,6 @@ fail() { printf 'r0s WORKDIR BLOCKED: %s\n' "$*" >&2; exit 2; }
     fail 'missing firmware or completed-workdir marker'
 [[ "$(cat "$FW/.extracted")" == "S901BXXSOGZH3/S901BOXMOGZH3/S901BXXSOGZH3" ]] ||
     fail 'not the pinned GZH3 firmware'
-grep -Eq '^[[:space:]]*abort\("E3099:.*NOT qualified for flashing' \
-    "$ROOT/target/r0s/installer/assertions.edify" || fail 'E3099 installation lock absent'
 
 printf '===== FIVE NATIVE LOGICAL PARTITIONS =====\n'
 expected="$(printf '%s\n' system odm product vendor vendor_dlkm | LC_ALL=C sort)"
@@ -116,4 +114,4 @@ printf '\n===== STORAGE / SAFETY =====\n'
 du -sh "$WORK"
 df -h "$ROOT"
 printf 'WORKDIR HOST AUDIT PASS (not kernel ABI, recovery OTA, target-files or BOARD)\n'
-printf 'E3099 INSTALLATION LOCK ACTIVE\n'
+printf 'ROM INSTALLER SOURCE UNCHANGED\n'

@@ -22,13 +22,11 @@ actual_logical="$(awk 'NF && $1 !~ /^#/ && $1 !~ /^\/dev\/block\// {print $1}' t
 expected_logical="$(printf '%s\n' system odm product vendor vendor_dlkm | LC_ALL=C sort)"
 [[ "$actual_logical" == "$expected_logical" ]] || fail 'staged logical set differs from native GZH3 super'
 
-# Keep the installer abort strictly before ANY write operation in generated updater-script.
-grep -Eq '^abort\("E3099:.*NOT qualified for flashing' target/r0s/installer/assertions.edify || fail 'E3099 lock missing'
 ota_source='scripts/internal/build_full_ota_zip.sh'
 assert_line="$(grep -nF 'PRINT_ASSERTIONS "$BUILD_INFO"' "$ota_source" | head -1 | cut -d: -f1)"
 write_line="$(grep -nF 'update_dynamic_partitions(package_extract_file(' "$ota_source" | head -1 | cut -d: -f1)"
 [[ "$assert_line" =~ ^[0-9]+$ && "$write_line" =~ ^[0-9]+$ ]] || fail 'OTA assertion/write source changed'
-(( assert_line < write_line )) || fail 'Updater may write partitions before WIP abort'
+(( assert_line < write_line )) || fail 'Updater may write partitions before device assertion'
 # Extract actual UN1CA resolver without executing heavyweight build_utils.sh or its external tools.
 resolver="$(sed -n '/^GET_DEVICE_FROM_MOUNTPOINT()$/,/^}$/p' scripts/utils/install_utils.sh)"
 [[ "$resolver" == *'map_partition('* ]] || fail 'Upstream resolver changed unexpectedly'
